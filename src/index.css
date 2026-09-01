@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-50: #FFF4ED;
+    --brand-100: #FFE6D5;
+    --brand-200: #FECDAA;
+    --brand-300: #FDAC74;
+    --brand-400: #FB8A3C;
+    --brand-500: #F26722;
+    --brand-600: #E14E12;
+    --brand-700: #BB3B11;
+    --brand-800: #952F15;
+    --brand-900: #782914;
+
+    --surface: #FAF9F7;
+    --border: #ECE9E4;
+    --muted: #78716C;
+    --ink: #1C1917;
+
+    --success: #2E7D5B;
+    --danger: #C0392B;
+  }
+  
+  body {
+    @apply bg-white text-ink;
+  }
+}
