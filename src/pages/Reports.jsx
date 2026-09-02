@@ -1,8 +1,193 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useReports } from '../hooks/useReports';
+import { format, parseISO, startOfWeek } from 'date-fns';
+
 export default function Reports() {
+  const { user, profile } = useAuth();
+  const { fetchVisibleReports, fetchThisWeekReport, upsertReport } = useReports();
+
+  const [entries, setEntries] = useState([]);
+  const [loadingList, setLoadingList] = useState(true);
+
+  // Form state
+  const [content, setContent] = useState('');
+  const [reportId, setReportId] = useState(null);
+  
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const isIntern = profile?.role === 'intern';
+  const thisWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'); // Monday as start
+
+  const loadData = async () => {
+    if (!user) return;
+    setLoadingList(true);
+    
+    // Fetch all visible reports based on RLS (can_view_intern)
+    const { data: listData } = await fetchVisibleReports();
+    if (listData) setEntries(listData);
+
+    if (isIntern) {
+      // Pre-fill this week's report
+      const { data: weekData } = await fetchThisWeekReport(user.id, thisWeekStart);
+      if (weekData) {
+        setContent(weekData.content || '');
+        setReportId(weekData.id);
+      } else {
+        setContent('');
+        setReportId(null);
+      }
+    }
+    
+    setLoadingList(false);
+  };
+
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, profile]);
+
+  const handleSubmit = async (e, status = 'draft') => {
+    e.preventDefault();
+    setSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false);
+
+    const payload = {
+      week_start: thisWeekStart,
+      content,
+      status,
+      // Update submitted_at if moving to submitted status, else keep null/current
+      submitted_at: status === 'submitted' ? new Date().toISOString() : null,
+    };
+    
+    if (reportId) {
+      payload.id = reportId;
+    }
+
+    const { data, error } = await upsertReport(payload);
+
+    if (error) {
+      setSubmitError(error.message);
+    } else {
+      setSubmitSuccess(true);
+      if (data?.id) setReportId(data.id);
+      setTimeout(() => setSubmitSuccess(false), 3000);
+      loadData(); // Refresh list to show updated entry
+    }
+    
+    setSubmitting(false);
+  };
+
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-border">
-      <h2 className="text-2xl font-bold mb-4">Weekly Reports</h2>
-      <p className="text-muted">Weekly reports content goes here.</p>
+    <div className="space-y-8 max-w-4xl">
+      {/* This Week's Report Form — shown to interns only */}
+      {isIntern && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-border">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-ink">This Week's Report</h2>
+            <span className="text-sm font-medium bg-surface text-muted px-3 py-1 rounded-full">
+              Week of {format(parseISO(thisWeekStart), 'MMM d, yyyy')}
+            </span>
+          </div>
+          
+          {submitError && (
+            <div className="bg-danger/10 text-danger p-3 rounded-xl text-sm mb-4">
+              {submitError}
+            </div>
+          )}
+          {submitSuccess && (
+            <div className="bg-success/10 text-success p-3 rounded-xl text-sm mb-4">
+              Report saved successfully!
+            </div>
+          )}
+          
+          <form className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1" htmlFor="content">
+                Report Content (Markdown supported)
+              </label>
+              <textarea
+                id="content"
+                rows="8"
+                className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2 font-mono text-sm"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="## Summary of the week&#10;&#10;..."
+                required
+              />
+            </div>
+            
+            <div className="pt-2 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e, 'draft')}
+                disabled={submitting}
+                className="px-6 py-2 font-medium text-ink bg-white border border-border hover:bg-surface rounded-xl transition-colors disabled:opacity-50"
+              >
+                {submitting ? 'Saving...' : 'Save Draft'}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e, 'submitted')}
+                disabled={submitting || !content.trim()}
+                className="bg-brand-500 text-white hover:bg-brand-600 rounded-xl px-6 py-2 font-medium transition-colors disabled:opacity-50"
+              >
+                Submit Report
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Entries List */}
+      <div>
+        <h3 className="text-xl font-bold mb-4 text-ink">
+          {isIntern ? 'Past Reports' : 'Intern Weekly Reports'}
+        </h3>
+        
+        {loadingList ? (
+          <p className="text-muted">Loading reports...</p>
+        ) : entries.length === 0 ? (
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-border text-center text-muted">
+            No weekly reports found.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {entries.map((entry) => (
+              <div
+                key={entry.id}
+                className="bg-white p-6 rounded-xl shadow-sm border border-border flex flex-col gap-3"
+              >
+                <div className="flex justify-between items-start border-b border-border pb-4">
+                  <div>
+                    <h4 className="font-bold text-ink">
+                      Week of {format(parseISO(entry.week_start), 'MMMM d, yyyy')}
+                    </h4>
+                    {!isIntern && entry.intern && (
+                      <p className="text-sm text-brand-600 font-medium mt-0.5">
+                        {entry.intern.full_name}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full capitalize ${
+                      entry.status === 'submitted' ? 'bg-success/10 text-success' : 'bg-surface text-muted'
+                    }`}>
+                      {entry.status}
+                    </span>
+                  </div>
+                </div>
+                <div className="prose prose-sm max-w-none text-ink whitespace-pre-wrap">
+                  {entry.content}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

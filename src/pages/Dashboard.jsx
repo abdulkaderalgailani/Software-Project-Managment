@@ -1,8 +1,26 @@
+import React from 'react';
+import { useAuth } from '../context/AuthContext';
+import { InternDashboard } from '../features/dashboard/InternDashboard';
+import { SupervisorDashboard } from '../features/dashboard/SupervisorDashboard';
+import { AdminDashboard } from '../features/dashboard/AdminDashboard';
+
 export default function Dashboard() {
-  return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-border">
-      <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
-      <p className="text-muted">Welcome to the Dashboard.</p>
-    </div>
-  );
+  const { profile } = useAuth();
+
+  if (!profile) {
+    return <div className="text-muted">Loading profile...</div>;
+  }
+
+  // Render the appropriate dashboard based on user role
+  switch (profile.role) {
+    case 'intern':
+      return <InternDashboard />;
+    case 'supervisor':
+      return <SupervisorDashboard />;
+    case 'super_supervisor':
+    case 'admin':
+      return <AdminDashboard />;
+    default:
+      return <div className="text-danger">Unknown role: {profile.role}</div>;
+  }
 }

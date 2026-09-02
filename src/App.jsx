@@ -6,6 +6,7 @@ import { AuthGuard } from './components/layout/AuthGuard';
 // Pages
 import Dashboard from './pages/Dashboard';
 import Progress from './pages/Progress';
+import ProgressDetail from './pages/ProgressDetail';
 import Tasks from './pages/Tasks';
 import Reports from './pages/Reports';
 import Diary from './pages/Diary';
@@ -29,6 +30,7 @@ function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="progress" element={<Progress />} />
+              <Route path="progress/:id" element={<ProgressDetail />} />
               <Route path="tasks" element={<Tasks />} />
               <Route path="reports" element={<Reports />} />
               <Route path="diary" element={<Diary />} />
