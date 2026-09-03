@@ -1,0 +1,55 @@
+import { useCallback } from 'react';
+import { supabase } from '../lib/supabase';
+
+export function useTeam() {
+  const fetchTeam = useCallback(async (profile) => {
+    if (!profile) return { data: null, error: new Error("Profile not loaded") };
+
+    try {
+      if (['admin', 'super_supervisor'].includes(profile.role)) {
+        // Fetch all profiles
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, role')
+          .order('role', { ascending: true })
+          .order('full_name', { ascending: true });
+        
+        return { data, error };
+      } 
+      
+      if (profile.role === 'supervisor') {
+        // Fetch their own interns
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, role')
+          .eq('supervisor_id', profile.id)
+          .order('full_name', { ascending: true });
+          
+        return { data, error };
+      }
+      
+      if (profile.role === 'intern') {
+        // Interns don't supervise anyone, but we can fetch their supervisor's info if they have one
+        if (!profile.supervisor_id) {
+          return { data: [], error: null }; // No team, no supervisor
+        }
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, role')
+          .eq('id', profile.supervisor_id)
+          .single();
+          
+        // We wrap the single supervisor in an array so the UI can expect a standard format if needed,
+        // or the UI can handle the intern case specifically.
+        return { data: data ? [data] : [], error };
+      }
+
+      return { data: [], error: null };
+    } catch (err) {
+      return { data: null, error: err };
+    }
+  }, []);
+
+  return { fetchTeam };
+}

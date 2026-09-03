@@ -52,6 +52,7 @@ export function SignupForm() {
           required
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
+          autoComplete="name"
           className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
           placeholder="Jane Doe"
         />
@@ -66,6 +67,7 @@ export function SignupForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
           className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
           placeholder="jane@example.com"
         />
@@ -80,6 +82,7 @@ export function SignupForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
           className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
           placeholder="••••••••"
         />
