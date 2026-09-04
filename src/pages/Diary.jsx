@@ -165,7 +165,7 @@ export default function Diary() {
             {entries.map((entry) => (
               <div
                 key={entry.id}
-                className="bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3"
+                className="bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3 group relative"
               >
                 <div className="flex justify-between items-start border-b border-border pb-3 mb-2">
                   <div>
@@ -178,6 +178,16 @@ export default function Diary() {
                       </p>
                     )}
                   </div>
+                  {user.id === entry.intern_id && (
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleEditClick(entry)} className="text-muted hover:text-brand transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Edit Entry">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDelete(entry.id)} className="text-muted hover:text-danger transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Delete Entry">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="text-text whitespace-pre-wrap">
                   {entry.content}
