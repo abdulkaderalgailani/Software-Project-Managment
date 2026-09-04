@@ -47,7 +47,7 @@ export default function Team() {
         );
       case 'supervisor':
         return (
-          <span className="flex items-center gap-1 text-xs font-bold bg-brand-50 text-brand-600 px-2 py-1 rounded-full uppercase tracking-wider">
+          <span className="flex items-center gap-1 text-xs font-bold bg-brand-tint text-brand px-2 py-1 rounded-full uppercase tracking-wider">
             <User className="w-3 h-3" /> Supervisor
           </span>
         );
@@ -63,10 +63,10 @@ export default function Team() {
   if (!profile) return null;
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="max-w-5xl space-y-4">
       <div className="flex items-center gap-3">
-        <Users className="w-8 h-8 text-brand-500" />
-        <h2 className="text-2xl font-bold text-ink">
+        <Users className="w-8 h-8 text-brand" />
+        <h2 className="text-2xl font-bold text-text">
           {['admin', 'super_supervisor'].includes(profile.role) ? 'Organization Directory' : 'My Team'}
         </h2>
       </div>
@@ -78,20 +78,20 @@ export default function Team() {
       )}
 
       {loading ? (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-border text-muted">
+        <div className="bg-surface p-5 rounded-xl shadow-sm border border-border text-muted">
           Loading team data...
         </div>
       ) : profile.role === 'intern' ? (
-        <div className="bg-white p-8 rounded-xl shadow-sm border border-border text-center">
+        <div className="bg-surface p-8 rounded-xl shadow-sm border border-border text-center">
           <div className="mx-auto bg-surface w-16 h-16 rounded-full flex items-center justify-center mb-4">
             <Users className="w-8 h-8 text-muted" />
           </div>
-          <h3 className="text-xl font-bold text-ink mb-2">You don't have a team view</h3>
+          <h3 className="text-xl font-bold text-text mb-2">You don't have a team view</h3>
           <p className="text-muted max-w-md mx-auto">
             Interns do not supervise other team members. 
             {team.length > 0 && team[0] && (
-              <span className="block mt-4 text-ink font-medium">
-                Your assigned supervisor is: <span className="text-brand-600">{team[0].full_name}</span>
+              <span className="block mt-4 text-text font-medium">
+                Your assigned supervisor is: <span className="text-brand">{team[0].full_name}</span>
               </span>
             )}
           </p>
@@ -99,18 +99,18 @@ export default function Team() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {team.length === 0 ? (
-            <div className="col-span-full bg-white p-8 rounded-xl shadow-sm border border-border text-center text-muted">
+            <div className="col-span-full bg-surface p-8 rounded-xl shadow-sm border border-border text-center text-muted">
               No team members found.
             </div>
           ) : (
             team.map((member) => (
               <div 
                 key={member.id} 
-                className="bg-white p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3 hover:shadow-md transition-shadow"
+                className="bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3 hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h3 className="font-bold text-ink text-lg line-clamp-1">{member.full_name}</h3>
+                    <h3 className="font-bold text-text text-lg line-clamp-1">{member.full_name}</h3>
                   </div>
                   {/* For admin/super, we show roles. For supervisor, they only see interns anyway, but we can still show the badge. */}
                   {['admin', 'super_supervisor'].includes(profile.role) && (
@@ -122,7 +122,7 @@ export default function Team() {
                 
                 <div className="flex items-center gap-2 text-sm text-muted mt-auto">
                   <Mail className="w-4 h-4 flex-shrink-0" />
-                  <a href={`mailto:${member.email}`} className="truncate hover:text-brand-600 transition-colors">
+                  <a href={`mailto:${member.email}`} className="truncate hover:text-brand transition-colors">
                     {member.email}
                   </a>
                 </div>

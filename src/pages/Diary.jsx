@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDiary } from '../hooks/useDiary';
 import { format, parseISO } from 'date-fns';
+import { Edit2, Trash2 } from 'lucide-react';
+import { Modal } from '../components/ui/Modal';
 
 export default function Diary() {
   const { user, profile } = useAuth();
-  const { fetchVisibleDiaryEntries, fetchTodayDiary, upsertDiary } = useDiary();
+  const { fetchVisibleDiaryEntries, fetchTodayDiary, upsertDiary, updateDiaryEntry, deleteDiaryEntry } = useDiary();
 
   const [entries, setEntries] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -17,6 +19,19 @@ export default function Diary() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+
+  
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this diary entry?")) {
+      await deleteDiaryEntry(id);
+      loadData();
+    }
+  };
+
+  const handleEditClick = (entry) => {
+    setEditingEntry(entry);
+  };
 
   const isIntern = profile?.role === 'intern';
   // Use today's date in YYYY-MM-DD
@@ -85,9 +100,9 @@ export default function Diary() {
     <div className="space-y-8 max-w-4xl">
       {/* Today's Diary Form — shown to interns only */}
       {isIntern && (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-border">
+        <div className="bg-surface p-5 rounded-xl shadow-sm border border-border">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-ink">Today's Diary</h2>
+            <h2 className="text-2xl font-bold text-text">Today's Diary</h2>
             <span className="text-sm font-medium bg-surface text-muted px-3 py-1 rounded-full">
               {format(parseISO(todayDate), 'MMM d, yyyy')}
             </span>
@@ -106,13 +121,13 @@ export default function Diary() {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-ink mb-1" htmlFor="content">
+              <label className="block text-sm font-medium text-text mb-1" htmlFor="content">
                 Dear Diary... (What's on your mind?)
               </label>
               <textarea
                 id="content"
                 rows="6"
-                className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+                className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Today was interesting because..."
@@ -124,7 +139,7 @@ export default function Diary() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="bg-brand-500 text-white hover:bg-brand-600 rounded-xl px-6 py-2 font-medium transition-colors disabled:opacity-50"
+                className="bg-brand text-white hover:opacity-90 rounded-xl px-6 py-2 font-medium transition-colors disabled:opacity-50"
               >
                 {submitting ? 'Saving...' : 'Save Diary'}
               </button>
@@ -135,14 +150,14 @@ export default function Diary() {
 
       {/* Entries List */}
       <div>
-        <h3 className="text-xl font-bold mb-4 text-ink">
+        <h3 className="text-xl font-bold mb-4 text-text">
           {isIntern ? 'Past Entries' : 'Intern Diary Entries'}
         </h3>
         
         {loadingList ? (
           <p className="text-muted">Loading entries...</p>
         ) : entries.length === 0 ? (
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-border text-center text-muted">
+          <div className="bg-surface p-5 rounded-xl shadow-sm border border-border text-center text-muted">
             No diary entries found.
           </div>
         ) : (
@@ -150,28 +165,111 @@ export default function Diary() {
             {entries.map((entry) => (
               <div
                 key={entry.id}
-                className="bg-white p-6 rounded-xl shadow-sm border border-border flex flex-col gap-3"
+                className="bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3"
               >
                 <div className="flex justify-between items-start border-b border-border pb-3 mb-2">
                   <div>
-                    <h4 className="font-bold text-ink">
+                    <h4 className="font-bold text-text">
                       {format(parseISO(entry.entry_date), 'MMMM d, yyyy')}
                     </h4>
                     {!isIntern && entry.intern && (
-                      <p className="text-sm text-brand-600 font-medium mt-0.5">
+                      <p className="text-sm text-brand font-medium mt-0.5">
                         {entry.intern.full_name}
                       </p>
                     )}
                   </div>
                 </div>
-                <div className="text-ink whitespace-pre-wrap">
+                <div className="text-text whitespace-pre-wrap">
                   {entry.content}
                 </div>
               </div>
             ))}
           </div>
         )}
+      
+      {editingEntry && (
+        <EditDiaryModal
+          entry={editingEntry}
+          onClose={() => setEditingEntry(null)}
+          onUpdated={loadData}
+        />
+      )}
       </div>
     </div>
+  );
+}
+
+
+function EditDiaryModal({ entry, onClose, onUpdated }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { updateDiaryEntry } = useDiary();
+
+  const [content, setContent] = useState('');
+
+  useEffect(() => {
+    if (entry) {
+      setContent(entry.content || '');
+    }
+  }, [entry]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    
+    const { error: updateError } = await updateDiaryEntry(entry.id, {
+      content,
+    });
+    
+    setLoading(false);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+
+    onUpdated();
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={!!entry} onClose={onClose} title="Edit Diary Entry">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="bg-danger/10 text-danger p-3 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
+        
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">Diary Content</label>
+          <textarea
+            required
+            rows="6"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+            value={content}
+            onChange={e => setContent(e.target.value)}
+          />
+        </div>
+
+        <div className="pt-4 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 font-medium text-text bg-surface border border-border hover:bg-hover-bg rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 font-medium text-white bg-brand hover:opacity-90 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

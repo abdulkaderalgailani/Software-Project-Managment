@@ -47,9 +47,43 @@ export function useReports() {
     return { data, error };
   }, [user]);
 
+  const updateReport = useCallback(async (reportId, payload) => {
+    if (!user) return { data: null, error: new Error('Not authenticated') };
+
+    const { data, error } = await supabase
+      .from('weekly_reports')
+      .update(payload)
+      .eq('id', reportId)
+      .select()
+      .single();
+
+    if (!error && data) {
+      await logActivity(user.id, 'report.updated', 'weekly_report', data.id);
+    }
+
+    return { data, error };
+  }, [user]);
+
+  const deleteReport = useCallback(async (reportId) => {
+    if (!user) return { error: new Error('Not authenticated') };
+    
+    const { error } = await supabase
+      .from('weekly_reports')
+      .delete()
+      .eq('id', reportId);
+
+    if (!error) {
+      await logActivity(user.id, 'report.deleted', 'weekly_report', reportId);
+    }
+
+    return { error };
+  }, [user]);
+
   return {
     fetchVisibleReports,
     fetchThisWeekReport,
     upsertReport,
+    updateReport,
+    deleteReport,
   };
 }

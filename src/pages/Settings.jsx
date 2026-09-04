@@ -13,10 +13,10 @@ export default function Settings() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-border max-w-2xl">
+    <div className="bg-surface p-5 rounded-xl shadow-sm border border-border max-w-2xl">
       <h2 className="text-2xl font-bold mb-6">Settings</h2>
       
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div>
           <h3 className="text-lg font-medium border-b border-border pb-2 mb-4">Profile Information</h3>
           <div className="space-y-2 text-sm">
@@ -30,7 +30,7 @@ export default function Settings() {
           <h3 className="text-lg font-medium border-b border-border pb-2 mb-4">Account Actions</h3>
           <button
             onClick={handleSignOut}
-            className="bg-white text-ink border border-border hover:bg-surface px-4 py-2 rounded-xl font-medium transition-colors"
+            className="bg-surface text-text border border-border hover:bg-hover-bg px-4 py-2 rounded-xl font-medium transition-colors"
           >
             Sign Out
           </button>

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Layout } from './components/layout/Layout';
 import { AuthGuard } from './components/layout/AuthGuard';
 
@@ -19,30 +20,32 @@ import Signup from './pages/Signup';
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          
-          <Route path="/" element={<AuthGuard />}>
-            <Route element={<Layout />}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="progress" element={<Progress />} />
-              <Route path="progress/:id" element={<ProgressDetail />} />
-              <Route path="tasks" element={<Tasks />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="diary" element={<Diary />} />
-              <Route path="messages" element={<Messages />} />
-              <Route path="team" element={<Team />} />
-              <Route path="logs" element={<Logs />} />
-              <Route path="settings" element={<Settings />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            
+            <Route path="/" element={<AuthGuard />}>
+              <Route element={<Layout />}>
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="progress" element={<Progress />} />
+                <Route path="progress/:id" element={<ProgressDetail />} />
+                <Route path="tasks" element={<Tasks />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="diary" element={<Diary />} />
+                <Route path="messages" element={<Messages />} />
+                <Route path="team" element={<Team />} />
+                <Route path="logs" element={<Logs />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

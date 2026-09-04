@@ -65,10 +65,40 @@ export function useTasks() {
     return { data, error };
   }, []);
 
+  const updateTaskDetails = useCallback(async (taskId, payload) => {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(payload)
+      .eq('id', taskId)
+      .select()
+      .single();
+      
+    if (!error && data) {
+      await logActivity(user.id, 'task.updated', 'task', taskId);
+    }
+      
+    return { data, error };
+  }, [user]);
+
+  const deleteTask = useCallback(async (taskId) => {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', taskId);
+      
+    if (!error) {
+      await logActivity(user.id, 'task.deleted', 'task', taskId);
+    }
+      
+    return { error };
+  }, [user]);
+
   return {
     fetchTasks,
     fetchAssignableInterns,
     createTask,
     updateTaskStatus,
+    updateTaskDetails,
+    deleteTask,
   };
 }

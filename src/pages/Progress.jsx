@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useProgress } from '../hooks/useProgress';
 import { format, parseISO } from 'date-fns';
+import { Edit2, Trash2 } from 'lucide-react';
+import { Modal } from '../components/ui/Modal';
 
 export default function Progress() {
   const { user, profile } = useAuth();
-  const { fetchProgressList, fetchAllVisibleProgress, fetchTodayProgress, upsertProgress } = useProgress();
+  const { fetchProgressList, fetchAllVisibleProgress, fetchTodayProgress, upsertProgress, updateProgress, deleteProgress } = useProgress();
 
   const [entries, setEntries] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -21,6 +23,21 @@ export default function Progress() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+
+  
+  const handleDelete = async (e, id) => {
+    e.preventDefault(); // Prevent link click
+    if (window.confirm("Are you sure you want to delete this progress entry?")) {
+      await deleteProgress(id);
+      loadData();
+    }
+  };
+
+  const handleEditClick = (e, entry) => {
+    e.preventDefault(); // Prevent link click
+    setEditingEntry(entry);
+  };
 
   const isIntern = profile?.role === 'intern';
 
@@ -94,8 +111,8 @@ export default function Progress() {
     <div className="space-y-8 max-w-4xl">
       {/* Today's Progress Form — shown to interns only */}
       {isIntern && (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-border">
-          <h2 className="text-2xl font-bold mb-6 text-ink">Today's Progress</h2>
+        <div className="bg-surface p-5 rounded-xl shadow-sm border border-border">
+          <h2 className="text-2xl font-bold mb-6 text-text">Today's Progress</h2>
           
           {submitError && (
             <div className="bg-danger/10 text-danger p-3 rounded-xl text-sm mb-4">
@@ -111,13 +128,13 @@ export default function Progress() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-ink mb-1" htmlFor="summary">
+                <label className="block text-sm font-medium text-text mb-1" htmlFor="summary">
                   Summary (What did you do overall?)
                 </label>
                 <textarea
                   id="summary"
                   rows="2"
-                  className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+                  className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
                   value={summary}
                   onChange={(e) => setSummary(e.target.value)}
                   required
@@ -125,46 +142,46 @@ export default function Progress() {
               </div>
               
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-ink mb-1" htmlFor="tasksDone">
+                <label className="block text-sm font-medium text-text mb-1" htmlFor="tasksDone">
                   Tasks Done
                 </label>
                 <textarea
                   id="tasksDone"
                   rows="2"
-                  className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+                  className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
                   value={tasksDone}
                   onChange={(e) => setTasksDone(e.target.value)}
                 />
               </div>
               
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-ink mb-1" htmlFor="learnings">
+                <label className="block text-sm font-medium text-text mb-1" htmlFor="learnings">
                   Learnings (JS / React / Supabase / etc.)
                 </label>
                 <textarea
                   id="learnings"
                   rows="2"
-                  className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+                  className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
                   value={learnings}
                   onChange={(e) => setLearnings(e.target.value)}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-ink mb-1" htmlFor="blockers">
-                  Blockers
+                <label className="block text-sm font-medium text-text mb-1" htmlFor="blockers">
+                  Pending Issues
                 </label>
                 <textarea
                   id="blockers"
                   rows="1"
-                  className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+                  className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
                   value={blockers}
                   onChange={(e) => setBlockers(e.target.value)}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-ink mb-1" htmlFor="hours">
+                <label className="block text-sm font-medium text-text mb-1" htmlFor="hours">
                   Hours
                 </label>
                 <input
@@ -172,7 +189,7 @@ export default function Progress() {
                   type="number"
                   step="0.5"
                   min="0"
-                  className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+                  className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
                   value={hours}
                   onChange={(e) => setHours(e.target.value)}
                   required
@@ -184,7 +201,7 @@ export default function Progress() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="bg-brand-500 text-white hover:bg-brand-600 rounded-xl px-6 py-2 font-medium transition-colors disabled:opacity-50"
+                className="bg-brand text-white hover:opacity-90 rounded-xl px-6 py-2 font-medium transition-colors disabled:opacity-50"
               >
                 {submitting ? 'Saving...' : 'Save Progress'}
               </button>
@@ -195,14 +212,14 @@ export default function Progress() {
 
       {/* Entries List */}
       <div>
-        <h3 className="text-xl font-bold mb-4 text-ink">
+        <h3 className="text-xl font-bold mb-4 text-text">
           {isIntern ? 'Past Entries' : 'Intern Progress Entries'}
         </h3>
         
         {loadingList ? (
           <p className="text-muted">Loading entries...</p>
         ) : entries.length === 0 ? (
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-border text-center text-muted">
+          <div className="bg-surface p-5 rounded-xl shadow-sm border border-border text-center text-muted">
             No progress entries found.
           </div>
         ) : (
@@ -211,16 +228,16 @@ export default function Progress() {
               <Link
                 key={entry.id}
                 to={`/progress/${entry.id}`}
-                className="block bg-white p-4 rounded-xl shadow-sm border border-border hover:bg-surface transition-colors"
+                className="block bg-surface p-4 rounded-xl shadow-sm border border-border hover:bg-hover-bg transition-colors group relative"
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-bold text-ink">
+                    <h4 className="font-bold text-text">
                       {format(parseISO(entry.entry_date), 'MMMM d, yyyy')}
                     </h4>
                     {/* Show intern name for non-intern viewers */}
                     {!isIntern && entry.intern && (
-                      <p className="text-sm text-brand-600 font-medium mt-0.5">
+                      <p className="text-sm text-brand font-medium mt-0.5">
                         {entry.intern.full_name}
                       </p>
                     )}
@@ -229,6 +246,18 @@ export default function Progress() {
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
+
+                    {user.id === entry.intern_id && (
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={(e) => handleEditClick(e, entry)} className="text-muted hover:text-brand transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Edit Entry">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={(e) => handleDelete(e, entry.id)} className="text-muted hover:text-danger transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Delete Entry">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
                     <span className="text-xs font-medium bg-surface text-muted px-2 py-1 rounded-full">
                       {entry.hours} hrs
                     </span>
@@ -243,7 +272,146 @@ export default function Progress() {
             ))}
           </div>
         )}
+      
+      {editingEntry && (
+        <EditProgressModal
+          entry={editingEntry}
+          onClose={() => setEditingEntry(null)}
+          onUpdated={loadData}
+        />
+      )}
       </div>
     </div>
+  );
+}
+
+
+function EditProgressModal({ entry, onClose, onUpdated }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { updateProgress } = useProgress();
+
+  const [summary, setSummary] = useState('');
+  const [tasksDone, setTasksDone] = useState('');
+  const [learnings, setLearnings] = useState('');
+  const [blockers, setBlockers] = useState('');
+  const [hours, setHours] = useState('');
+
+  useEffect(() => {
+    if (entry) {
+      setSummary(entry.summary || '');
+      setTasksDone(entry.tasks_done || '');
+      setLearnings(entry.learnings || '');
+      setBlockers(entry.blockers || '');
+      setHours(entry.hours || '');
+    }
+  }, [entry]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    
+    const { error: updateError } = await updateProgress(entry.id, {
+      summary,
+      tasks_done: tasksDone,
+      learnings,
+      blockers,
+      hours: parseFloat(hours),
+    });
+    
+    setLoading(false);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+
+    onUpdated();
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={!!entry} onClose={onClose} title="Edit Progress Entry">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="bg-danger/10 text-danger p-3 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
+        
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">Summary</label>
+          <textarea
+            required
+            rows="2"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+            value={summary}
+            onChange={e => setSummary(e.target.value)}
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">Tasks Done</label>
+          <textarea
+            rows="2"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+            value={tasksDone}
+            onChange={e => setTasksDone(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">Learnings</label>
+          <textarea
+            rows="2"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+            value={learnings}
+            onChange={e => setLearnings(e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-text mb-1">Pending Issues</label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+              value={blockers}
+              onChange={e => setBlockers(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-text mb-1">Hours</label>
+            <input
+              required
+              type="number"
+              step="0.5"
+              min="0"
+              className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+              value={hours}
+              onChange={e => setHours(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="pt-4 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 font-medium text-text bg-surface border border-border hover:bg-hover-bg rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 font-medium text-white bg-brand hover:opacity-90 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
