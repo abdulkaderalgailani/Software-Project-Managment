@@ -1,16 +1,39 @@
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        display: ['Poppins', 'sans-serif'],
+      },
       colors: {
         brand: {
-          50:'#FFF4ED',100:'#FFE6D5',200:'#FECDAA',300:'#FDAC74',400:'#FB8A3C',
-          500:'#F26722',600:'#E14E12',700:'#BB3B11',800:'#952F15',900:'#782914',
+          DEFAULT: 'var(--brand)',
+          tint: 'var(--brand-tint)',
         },
-        surface:'#FAF9F7', border:'#ECE9E4', muted:'#78716C', ink:'#1C1917',
-        success:'#2E7D5B', danger:'#C0392B',
+        navy: 'var(--navy)',
+        'page-bg': 'var(--page-bg)',
+        surface: 'var(--surface)',
+        'surface-nested': 'var(--surface-nested)',
+        'input-bg': 'var(--input-bg)',
+        'hover-bg': 'var(--hover-bg)',
+        border: 'var(--border)',
+        muted: 'var(--text-muted)',
+        text: {
+          DEFAULT: 'var(--text)',
+          body: 'var(--text-body)',
+          muted: 'var(--text-muted)',
+          faint: 'var(--text-faint)',
+        },
+        'on-navy': 'var(--text-on-navy)',
+        'on-navy-muted': 'var(--text-on-navy-muted)',
+        success: {
+          bg: 'var(--success-bg)',
+          text: 'var(--success-text)',
+        }
       },
-      borderRadius: { xl:'0.75rem', '2xl':'1rem' },
+      borderRadius: { xl: '0.75rem', '2xl': '1rem' },
     },
   },
   plugins: [],

@@ -4,27 +4,54 @@
 
 @layer base {
   :root {
-    --brand-50: #FFF4ED;
-    --brand-100: #FFE6D5;
-    --brand-200: #FECDAA;
-    --brand-300: #FDAC74;
-    --brand-400: #FB8A3C;
-    --brand-500: #F26722;
-    --brand-600: #E14E12;
-    --brand-700: #BB3B11;
-    --brand-800: #952F15;
-    --brand-900: #782914;
+    --brand: #F26722;
+    --brand-tint: #FDEEE6;
+    --navy: #0F1E46;
+    --page-bg: #F7F8FA;
+    --surface: #FFFFFF;
+    --border: #E6E8EE;
+    --text: #0F1E46;
+    --text-body: #374151;
+    --text-muted: #6B7280;
+    --text-faint: #9AA2B1;
+    --text-on-navy: #FFFFFF;
+    --text-on-navy-muted: #8595BD;
+    
+    --success-bg: #E1F5EE;
+    --success-text: #0F6E56;
 
-    --surface: #FAF9F7;
-    --border: #ECE9E4;
-    --muted: #78716C;
-    --ink: #1C1917;
+    --surface-nested: transparent;
+    --input-bg: #FFFFFF;
+    --hover-bg: #F7F8FA;
+  }
 
-    --success: #2E7D5B;
-    --danger: #C0392B;
+  .dark {
+    --brand: #F8481A;
+    --brand-tint: #3A1C12;
+    --navy: #081627;
+    --page-bg: #0B1D33;
+    --surface: #17395A;
+    --border: rgba(255, 255, 255, 0.16);
+    --text: #FFFFFF;
+    --text-body: #DBE4F0;
+    --text-muted: #9FB2CE;
+    --text-faint: #7C88A6;
+    --text-on-navy: #FFFFFF;
+    --text-on-navy-muted: #8595BD;
+    
+    --success-bg: #123A2F;
+    --success-text: #4ADE80;
+
+    --surface-nested: #102A47;
+    --input-bg: #0E2947;
+    --hover-bg: #1E466F;
   }
   
   body {
-    @apply bg-white text-ink;
+    @apply bg-page-bg text-text-body font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display text-text;
   }
 }

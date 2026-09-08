@@ -21,15 +21,15 @@ import { Activity, CheckCircle, FileText, MessageSquare, Briefcase, FileEdit } f
 export const getActionDetails = (action, entityType) => {
   switch (action) {
     case 'progress.submitted':
-      return { text: 'submitted their daily progress', icon: CheckCircle, color: 'text-brand-500' };
+      return { text: 'submitted their daily progress', icon: CheckCircle, color: 'text-brand' };
     case 'task.created':
       return { text: 'assigned a new task', icon: Briefcase, color: 'text-blue-500' };
     case 'task.status_changed':
-      return { text: 'updated a task status', icon: Activity, color: 'text-brand-500' };
+      return { text: 'updated a task status', icon: Activity, color: 'text-brand' };
     case 'review.added':
       return { text: 'added a review to a progress entry', icon: FileEdit, color: 'text-purple-500' };
     case 'report.submitted':
-      return { text: 'submitted their weekly report', icon: FileText, color: 'text-brand-500' };
+      return { text: 'submitted their weekly report', icon: FileText, color: 'text-brand' };
     case 'report.draft_saved':
       return { text: 'saved a weekly report draft', icon: FileText, color: 'text-muted' };
     case 'message.sent':

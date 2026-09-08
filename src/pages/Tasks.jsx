@@ -2,16 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTasks } from '../hooks/useTasks';
 import { Modal } from '../components/ui/Modal';
-import { Plus, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Clock, AlertCircle, Edit2, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 export default function Tasks() {
-  const { profile } = useAuth();
-  const { fetchTasks, fetchAssignableInterns, createTask, updateTaskStatus } = useTasks();
+  const { user, profile } = useAuth();
+  const { fetchTasks, fetchAssignableInterns, createTask, updateTaskStatus, updateTaskDetails, deleteTask } = useTasks();
   
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
   
   const canAssign = profile && ['supervisor', 'super_supervisor', 'admin'].includes(profile.role);
 
@@ -27,6 +28,18 @@ export default function Tasks() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  
+  const handleDelete = async (taskId) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      await deleteTask(taskId);
+      loadTasks();
+    }
+  };
+
+  const handleEdit = (task) => {
+    setEditingTask(task);
+  };
+
   const handleStatusChange = async (taskId, newStatus) => {
     // Optimistic update
     setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
@@ -41,13 +54,13 @@ export default function Tasks() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-ink">Tasks</h2>
+        <h2 className="text-2xl font-bold text-text">Tasks</h2>
         {canAssign && (
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-brand-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-brand-600 transition-colors"
+            className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-xl font-medium hover:opacity-90 transition-colors"
           >
             <Plus className="w-5 h-5" /> Create Task
           </button>
@@ -57,27 +70,49 @@ export default function Tasks() {
       {loading ? (
         <div className="text-muted">Loading tasks...</div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <TaskColumn 
             title="To Do" 
             tasks={groupedTasks.todo} 
             nextStatus="in_progress" 
             onStatusChange={handleStatusChange} 
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            canAssign={canAssign}
+            userId={user?.id}
           />
           <TaskColumn 
             title="In Progress" 
             tasks={groupedTasks.in_progress} 
+            prevStatus="todo"
             nextStatus="done" 
             onStatusChange={handleStatusChange} 
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            canAssign={canAssign}
+            userId={user?.id}
           />
           <TaskColumn 
             title="Done" 
             tasks={groupedTasks.done} 
+            prevStatus="in_progress"
             onStatusChange={handleStatusChange} 
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            canAssign={canAssign}
+            userId={user?.id}
           />
         </div>
       )}
 
+      {editingTask && (
+        <EditTaskModal 
+          task={editingTask} 
+          onClose={() => setEditingTask(null)} 
+          onUpdated={loadTasks}
+          fetchAssignableInterns={fetchAssignableInterns}
+        />
+      )}
       {canAssign && (
         <CreateTaskModal 
           isOpen={isModalOpen} 
@@ -90,11 +125,11 @@ export default function Tasks() {
   );
 }
 
-function TaskColumn({ title, tasks, nextStatus, onStatusChange }) {
+function TaskColumn({ title, tasks, prevStatus, nextStatus, onStatusChange, onEdit, onDelete, canAssign, userId }) {
   return (
-    <div className="bg-surface rounded-xl p-4 flex flex-col gap-4 border border-border min-h-[500px]">
+    <div className="bg-surface-nested rounded-xl p-4 flex flex-col gap-4 border border-border min-h-[500px]">
       <div className="flex items-center justify-between px-1">
-        <h3 className="font-bold text-ink">{title}</h3>
+        <h3 className="font-bold text-text">{title}</h3>
         <span className="text-xs font-bold text-muted bg-border px-2 py-1 rounded-full">
           {tasks.length}
         </span>
@@ -102,11 +137,23 @@ function TaskColumn({ title, tasks, nextStatus, onStatusChange }) {
       
       <div className="flex-1 space-y-3">
         {tasks.map(task => (
-          <div key={task.id} className="bg-white p-4 rounded-xl shadow-sm border border-border flex flex-col gap-3">
+          <div key={task.id} className="bg-surface p-4 rounded-xl shadow-sm border border-border flex flex-col gap-3 group">
             <div>
               <div className="flex justify-between items-start gap-2 mb-1">
-                <h4 className="font-bold text-ink line-clamp-2">{task.title}</h4>
+                <h4 className="font-bold text-text line-clamp-2">{task.title}</h4>
                 {task.priority === 'high' && <AlertCircle className="w-4 h-4 text-danger flex-shrink-0" />}
+
+                {canAssign && (
+                  <div className="flex gap-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => onEdit(task)} className="text-muted hover:text-brand transition-colors p-1" title="Edit Task">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => onDelete(task.id)} className="text-muted hover:text-danger transition-colors p-1" title="Delete Task">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
               </div>
               <p className="text-sm text-muted line-clamp-3">{task.description}</p>
             </div>
@@ -121,13 +168,25 @@ function TaskColumn({ title, tasks, nextStatus, onStatusChange }) {
                 )}
               </div>
               
-              {nextStatus && (
-                <button
-                  onClick={() => onStatusChange(task.id, nextStatus)}
-                  className="w-full text-center text-sm font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 py-1.5 rounded-lg transition-colors mt-2"
-                >
-                  Move to {nextStatus.replace('_', ' ')}
-                </button>
+              {(canAssign || task.assigned_to === userId) && (prevStatus || nextStatus) && (
+                <div className="flex gap-2 mt-2">
+                  {prevStatus && (
+                    <button
+                      onClick={() => onStatusChange(task.id, prevStatus)}
+                      className="flex-1 text-center text-sm font-medium text-text bg-surface-nested border border-border hover:bg-hover-bg py-1.5 rounded-lg transition-colors"
+                    >
+                      &larr; {prevStatus.replace('_', ' ')}
+                    </button>
+                  )}
+                  {nextStatus && (
+                    <button
+                      onClick={() => onStatusChange(task.id, nextStatus)}
+                      className="flex-1 text-center text-sm font-medium text-brand bg-brand-tint hover:opacity-90 py-1.5 rounded-lg transition-colors"
+                    >
+                      {nextStatus.replace('_', ' ')} &rarr;
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -198,21 +257,21 @@ function CreateTaskModal({ isOpen, onClose, onCreated, fetchAssignableInterns })
           </div>
         )}
         <div>
-          <label className="block text-sm font-medium text-ink mb-1">Title</label>
+          <label className="block text-sm font-medium text-text mb-1">Title</label>
           <input
             required
             type="text"
-            className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
             value={title}
             onChange={e => setTitle(e.target.value)}
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-ink mb-1">Description</label>
+          <label className="block text-sm font-medium text-text mb-1">Description</label>
           <textarea
             rows="3"
-            className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
             value={description}
             onChange={e => setDescription(e.target.value)}
           />
@@ -220,9 +279,9 @@ function CreateTaskModal({ isOpen, onClose, onCreated, fetchAssignableInterns })
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-ink mb-1">Assign To</label>
+            <label className="block text-sm font-medium text-text mb-1">Assign To</label>
             <select
-              className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 bg-white"
+              className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none bg-input-bg focus-visible:ring-2 ring-brand ring-offset-2 bg-surface"
               value={assignedTo}
               onChange={e => setAssignedTo(e.target.value)}
               required
@@ -235,9 +294,9 @@ function CreateTaskModal({ isOpen, onClose, onCreated, fetchAssignableInterns })
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-ink mb-1">Priority</label>
+            <label className="block text-sm font-medium text-text mb-1">Priority</label>
             <select
-              className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 bg-white"
+              className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none bg-input-bg focus-visible:ring-2 ring-brand ring-offset-2 bg-surface"
               value={priority}
               onChange={e => setPriority(e.target.value)}
             >
@@ -249,10 +308,10 @@ function CreateTaskModal({ isOpen, onClose, onCreated, fetchAssignableInterns })
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-ink mb-1">Due Date (Optional)</label>
+          <label className="block text-sm font-medium text-text mb-1">Due Date (Optional)</label>
           <input
             type="date"
-            className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
             value={dueDate}
             onChange={e => setDueDate(e.target.value)}
           />
@@ -262,16 +321,156 @@ function CreateTaskModal({ isOpen, onClose, onCreated, fetchAssignableInterns })
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 font-medium text-ink bg-white border border-border hover:bg-surface rounded-xl transition-colors"
+            className="px-4 py-2 font-medium text-text bg-surface border border-border hover:bg-hover-bg rounded-xl transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-colors disabled:opacity-50"
+            className="px-4 py-2 font-medium text-white bg-brand hover:opacity-90 rounded-xl transition-colors disabled:opacity-50"
           >
             {loading ? 'Creating...' : 'Create Task'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+
+function EditTaskModal({ task, onClose, onUpdated, fetchAssignableInterns }) {
+  const [interns, setInterns] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { updateTaskDetails } = useTasks();
+
+  const [title, setTitle] = useState(task?.title || '');
+  const [description, setDescription] = useState(task?.description || '');
+  const [assignedTo, setAssignedTo] = useState(task?.assigned_to || '');
+  const [priority, setPriority] = useState(task?.priority || 'medium');
+  const [dueDate, setDueDate] = useState(task?.due_date || '');
+
+  useEffect(() => {
+    if (task) {
+      fetchAssignableInterns().then(({ data }) => {
+        if (data) setInterns(data);
+      });
+      setTitle(task.title);
+      setDescription(task.description || '');
+      setAssignedTo(task.assigned_to || '');
+      setPriority(task.priority || 'medium');
+      setDueDate(task.due_date || '');
+    }
+  }, [task, fetchAssignableInterns]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    
+    const { error: updateError } = await updateTaskDetails(task.id, {
+      title,
+      description,
+      assigned_to: assignedTo || null,
+      priority,
+      due_date: dueDate || null,
+    });
+    
+    setLoading(false);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+
+    onUpdated();
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={!!task} onClose={onClose} title="Edit Task">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="bg-danger/10 text-danger p-3 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">Title</label>
+          <input
+            required
+            type="text"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">Description</label>
+          <textarea
+            rows="3"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-text mb-1">Assign To</label>
+            <select
+              className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2"
+              value={assignedTo}
+              onChange={e => setAssignedTo(e.target.value)}
+              required
+            >
+              <option value="" disabled>Select an intern</option>
+              {interns.map(intern => (
+                <option key={intern.id} value={intern.id}>{intern.full_name}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-text mb-1">Priority</label>
+            <select
+              className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2"
+              value={priority}
+              onChange={e => setPriority(e.target.value)}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">Due Date (Optional)</label>
+          <input
+            type="date"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+            value={dueDate}
+            onChange={e => setDueDate(e.target.value)}
+          />
+        </div>
+
+        <div className="pt-4 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 font-medium text-text bg-surface border border-border hover:bg-hover-bg rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 font-medium text-white bg-brand hover:opacity-90 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </form>

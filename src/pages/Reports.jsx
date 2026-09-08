@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useReports } from '../hooks/useReports';
 import { format, parseISO, startOfWeek } from 'date-fns';
+import { Edit2, Trash2 } from 'lucide-react';
+import { Modal } from '../components/ui/Modal';
 
 export default function Reports() {
   const { user, profile } = useAuth();
-  const { fetchVisibleReports, fetchThisWeekReport, upsertReport } = useReports();
+  const { fetchVisibleReports, fetchThisWeekReport, upsertReport, updateReport, deleteReport } = useReports();
 
   const [entries, setEntries] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -17,6 +19,19 @@ export default function Reports() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [editingReport, setEditingReport] = useState(null);
+
+  
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this weekly report?")) {
+      await deleteReport(id);
+      loadData();
+    }
+  };
+
+  const handleEditClick = (report) => {
+    setEditingReport(report);
+  };
 
   const isIntern = profile?.role === 'intern';
   const thisWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'); // Monday as start
@@ -85,9 +100,9 @@ export default function Reports() {
     <div className="space-y-8 max-w-4xl">
       {/* This Week's Report Form — shown to interns only */}
       {isIntern && (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-border">
+        <div className="bg-surface p-5 rounded-xl shadow-sm border border-border">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-ink">This Week's Report</h2>
+            <h2 className="text-2xl font-bold text-text">This Week's Report</h2>
             <span className="text-sm font-medium bg-surface text-muted px-3 py-1 rounded-full">
               Week of {format(parseISO(thisWeekStart), 'MMM d, yyyy')}
             </span>
@@ -106,13 +121,13 @@ export default function Reports() {
           
           <form className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-ink mb-1" htmlFor="content">
+              <label className="block text-sm font-medium text-text mb-1" htmlFor="content">
                 Report Content (Markdown supported)
               </label>
               <textarea
                 id="content"
                 rows="8"
-                className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2 font-mono text-sm"
+                className="w-full px-3 py-2 border border-border rounded-xl font-mono text-sm bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="## Summary of the week&#10;&#10;..."
@@ -125,7 +140,7 @@ export default function Reports() {
                 type="button"
                 onClick={(e) => handleSubmit(e, 'draft')}
                 disabled={submitting}
-                className="px-6 py-2 font-medium text-ink bg-white border border-border hover:bg-surface rounded-xl transition-colors disabled:opacity-50"
+                className="px-6 py-2 font-medium text-text bg-surface border border-border hover:bg-hover-bg rounded-xl transition-colors disabled:opacity-50"
               >
                 {submitting ? 'Saving...' : 'Save Draft'}
               </button>
@@ -133,7 +148,7 @@ export default function Reports() {
                 type="button"
                 onClick={(e) => handleSubmit(e, 'submitted')}
                 disabled={submitting || !content.trim()}
-                className="bg-brand-500 text-white hover:bg-brand-600 rounded-xl px-6 py-2 font-medium transition-colors disabled:opacity-50"
+                className="bg-brand text-white hover:opacity-90 rounded-xl px-6 py-2 font-medium transition-colors disabled:opacity-50"
               >
                 Submit Report
               </button>
@@ -144,14 +159,14 @@ export default function Reports() {
 
       {/* Entries List */}
       <div>
-        <h3 className="text-xl font-bold mb-4 text-ink">
+        <h3 className="text-xl font-bold mb-4 text-text">
           {isIntern ? 'Past Reports' : 'Intern Weekly Reports'}
         </h3>
         
         {loadingList ? (
           <p className="text-muted">Loading reports...</p>
         ) : entries.length === 0 ? (
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-border text-center text-muted">
+          <div className="bg-surface p-5 rounded-xl shadow-sm border border-border text-center text-muted">
             No weekly reports found.
           </div>
         ) : (
@@ -159,15 +174,15 @@ export default function Reports() {
             {entries.map((entry) => (
               <div
                 key={entry.id}
-                className="bg-white p-6 rounded-xl shadow-sm border border-border flex flex-col gap-3"
+                className="bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3"
               >
                 <div className="flex justify-between items-start border-b border-border pb-4">
                   <div>
-                    <h4 className="font-bold text-ink">
+                    <h4 className="font-bold text-text">
                       Week of {format(parseISO(entry.week_start), 'MMMM d, yyyy')}
                     </h4>
                     {!isIntern && entry.intern && (
-                      <p className="text-sm text-brand-600 font-medium mt-0.5">
+                      <p className="text-sm text-brand font-medium mt-0.5">
                         {entry.intern.full_name}
                       </p>
                     )}
@@ -180,14 +195,112 @@ export default function Reports() {
                     </span>
                   </div>
                 </div>
-                <div className="prose prose-sm max-w-none text-ink whitespace-pre-wrap">
+                <div className="prose prose-sm max-w-none text-text whitespace-pre-wrap">
                   {entry.content}
                 </div>
               </div>
             ))}
           </div>
         )}
+      
+      {editingReport && (
+        <EditReportModal
+          report={editingReport}
+          onClose={() => setEditingReport(null)}
+          onUpdated={loadData}
+        />
+      )}
       </div>
     </div>
+  );
+}
+
+
+function EditReportModal({ report, onClose, onUpdated }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { updateReport } = useReports();
+
+  const [content, setContent] = useState('');
+  const [status, setStatus] = useState('draft');
+
+  useEffect(() => {
+    if (report) {
+      setContent(report.content || '');
+      setStatus(report.status || 'draft');
+    }
+  }, [report]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    
+    const { error: updateError } = await updateReport(report.id, {
+      content,
+      status,
+    });
+    
+    setLoading(false);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+
+    onUpdated();
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={!!report} onClose={onClose} title="Edit Weekly Report">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="bg-danger/10 text-danger p-3 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
+        
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">Report Content</label>
+          <textarea
+            required
+            rows="6"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+            value={content}
+            onChange={e => setContent(e.target.value)}
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">Status</label>
+          <select
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+            value={status}
+            onChange={e => setStatus(e.target.value)}
+          >
+            <option value="draft">Draft</option>
+            <option value="submitted">Submitted</option>
+          </select>
+        </div>
+
+        <div className="pt-4 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 font-medium text-text bg-surface border border-border hover:bg-hover-bg rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 font-medium text-white bg-brand hover:opacity-90 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

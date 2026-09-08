@@ -68,6 +68,38 @@ export function useProgress() {
     return { data, error };
   }, [user]);
 
+  const updateProgress = useCallback(async (progressId, payload) => {
+    if (!user) return { data: null, error: new Error('Not authenticated') };
+    
+    const { data, error } = await supabase
+      .from('daily_progress')
+      .update(payload)
+      .eq('id', progressId)
+      .select()
+      .single();
+
+    if (!error && data) {
+      await logActivity(user.id, 'progress.updated', 'daily_progress', data.id);
+    }
+
+    return { data, error };
+  }, [user]);
+
+  const deleteProgress = useCallback(async (progressId) => {
+    if (!user) return { error: new Error('Not authenticated') };
+    
+    const { error } = await supabase
+      .from('daily_progress')
+      .delete()
+      .eq('id', progressId);
+
+    if (!error) {
+      await logActivity(user.id, 'progress.deleted', 'daily_progress', progressId);
+    }
+
+    return { error };
+  }, [user]);
+
   const fetchAllVisibleProgress = useCallback(async () => {
     // No intern_id filter — RLS can_view_intern policy controls visibility.
     // Supervisors see their interns; super_supervisor/admin see everyone.
@@ -116,6 +148,8 @@ export function useProgress() {
     fetchProgressEntry,
     fetchTodayProgress,
     upsertProgress,
+    updateProgress,
+    deleteProgress,
     fetchReviews,
     addReview,
   };

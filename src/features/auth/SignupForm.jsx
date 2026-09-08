@@ -43,7 +43,7 @@ export function SignupForm() {
         </div>
       )}
       <div>
-        <label className="block text-sm font-medium text-ink mb-1" htmlFor="fullName">
+        <label className="block text-sm font-medium text-text mb-1" htmlFor="fullName">
           Full Name
         </label>
         <input
@@ -52,12 +52,13 @@ export function SignupForm() {
           required
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+          autoComplete="name"
+          className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
           placeholder="Jane Doe"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-ink mb-1" htmlFor="email">
+        <label className="block text-sm font-medium text-text mb-1" htmlFor="email">
           Email
         </label>
         <input
@@ -66,12 +67,13 @@ export function SignupForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+          autoComplete="email"
+          className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
           placeholder="jane@example.com"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-ink mb-1" htmlFor="password">
+        <label className="block text-sm font-medium text-text mb-1" htmlFor="password">
           Password
         </label>
         <input
@@ -80,14 +82,15 @@ export function SignupForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2"
+          autoComplete="new-password"
+          className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
           placeholder="••••••••"
         />
       </div>
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-500 text-white hover:bg-brand-600 rounded-xl py-2 font-medium transition-colors disabled:opacity-50"
+        className="w-full bg-brand text-white hover:opacity-90 rounded-xl py-2 font-medium transition-colors disabled:opacity-50"
       >
         {loading ? 'Signing up...' : 'Sign Up'}
       </button>

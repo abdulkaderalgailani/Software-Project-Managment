@@ -22,17 +22,17 @@ export default function Logs() {
   }, [fetchLogs]);
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="max-w-4xl space-y-4">
       <div className="flex items-center gap-3">
-        <Activity className="w-8 h-8 text-brand-500" />
-        <h2 className="text-2xl font-bold text-ink">Activity Log</h2>
+        <Activity className="w-8 h-8 text-brand" />
+        <h2 className="text-2xl font-bold text-text">Activity Log</h2>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
+      <div className="bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
         {loading ? (
-          <div className="p-6 text-muted">Loading activity logs...</div>
+          <div className="p-5 text-muted">Loading activity logs...</div>
         ) : logs.length === 0 ? (
-          <div className="p-6 text-muted text-center">No recent activity found.</div>
+          <div className="p-5 text-muted text-center">No recent activity found.</div>
         ) : (
           <ul className="divide-y divide-border">
             {logs.map((log) => {
@@ -40,13 +40,13 @@ export default function Logs() {
               const Icon = details.icon;
               
               return (
-                <li key={log.id} className="p-6 flex gap-4 hover:bg-surface transition-colors">
+                <li key={log.id} className="p-5 flex gap-4 hover:bg-hover-bg transition-colors">
                   <div className={`mt-1 bg-surface p-2 rounded-full ${details.color}`}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-ink text-sm">
-                      <span className="font-bold text-ink">{log.profiles?.full_name || 'Someone'}</span>
+                    <p className="text-text text-sm">
+                      <span className="font-bold text-text">{log.profiles?.full_name || 'Someone'}</span>
                       {' '}
                       {details.text}
                     </p>

@@ -65,7 +65,7 @@ export default function ProgressDetail() {
 
   if (error || !entry) {
     return (
-      <div className="bg-danger/10 text-danger p-6 rounded-xl">
+      <div className="bg-danger/10 text-danger p-5 rounded-xl">
         {error || 'Entry not found.'}
       </div>
     );
@@ -75,18 +75,18 @@ export default function ProgressDetail() {
   const isReviewed = reviews.length > 0;
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-3xl space-y-4">
       <Link 
         to="/progress" 
-        className="inline-flex items-center gap-2 text-brand-600 hover:text-brand-700 font-medium transition-colors"
+        className="inline-flex items-center gap-2 text-brand hover:text-brand font-medium transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Progress
       </Link>
       
       {/* Entry Details */}
-      <div className="bg-white p-8 rounded-xl shadow-sm border border-border">
+      <div className="bg-surface p-8 rounded-xl shadow-sm border border-border">
         <div className="border-b border-border pb-6 mb-6">
-          <h2 className="text-3xl font-bold text-ink">
+          <h2 className="text-3xl font-bold text-text">
             {format(parseISO(entry.entry_date), 'MMMM d, yyyy')}
           </h2>
           <div className="flex items-center gap-3 mt-3">
@@ -103,27 +103,27 @@ export default function ProgressDetail() {
 
         <div className="space-y-8">
           <section>
-            <h3 className="text-lg font-bold text-ink mb-2">Summary</h3>
+            <h3 className="text-lg font-bold text-text mb-2">Summary</h3>
             <p className="text-muted whitespace-pre-wrap leading-relaxed">{entry.summary}</p>
           </section>
 
           {entry.tasks_done && (
             <section>
-              <h3 className="text-lg font-bold text-ink mb-2">Tasks Done</h3>
+              <h3 className="text-lg font-bold text-text mb-2">Tasks Done</h3>
               <p className="text-muted whitespace-pre-wrap leading-relaxed">{entry.tasks_done}</p>
             </section>
           )}
 
           {entry.learnings && (
             <section>
-              <h3 className="text-lg font-bold text-ink mb-2">Learnings</h3>
+              <h3 className="text-lg font-bold text-text mb-2">Learnings</h3>
               <p className="text-muted whitespace-pre-wrap leading-relaxed">{entry.learnings}</p>
             </section>
           )}
 
           {entry.blockers && (
             <section>
-              <h3 className="text-lg font-bold text-ink mb-2">Blockers</h3>
+              <h3 className="text-lg font-bold text-text mb-2">Blockers</h3>
               <p className="text-muted whitespace-pre-wrap leading-relaxed">{entry.blockers}</p>
             </section>
           )}
@@ -131,9 +131,9 @@ export default function ProgressDetail() {
       </div>
 
       {/* Reviews Section */}
-      <div className="bg-white p-8 rounded-xl shadow-sm border border-border">
-        <h3 className="text-xl font-bold text-ink mb-6 flex items-center gap-2">
-          <MessageCircle className="w-5 h-5 text-brand-500" />
+      <div className="bg-surface p-8 rounded-xl shadow-sm border border-border">
+        <h3 className="text-xl font-bold text-text mb-6 flex items-center gap-2">
+          <MessageCircle className="w-5 h-5 text-brand" />
           Supervisor Reviews
         </h3>
         
@@ -144,12 +144,12 @@ export default function ProgressDetail() {
             {reviews.map(review => (
               <div key={review.id} className="bg-surface p-4 rounded-xl border border-border">
                 <div className="flex justify-between items-start mb-2">
-                  <span className="font-bold text-ink">{review.reviewer?.full_name || 'Supervisor'}</span>
+                  <span className="font-bold text-text">{review.reviewer?.full_name || 'Supervisor'}</span>
                   <span className="text-xs text-muted">
                     {formatDistanceToNow(parseISO(review.created_at), { addSuffix: true })}
                   </span>
                 </div>
-                <p className="text-ink whitespace-pre-wrap text-sm">{review.comment}</p>
+                <p className="text-text whitespace-pre-wrap text-sm">{review.comment}</p>
               </div>
             ))}
           </div>
@@ -157,7 +157,7 @@ export default function ProgressDetail() {
 
         {canReview && (
           <form onSubmit={handleAddReview} className="mt-6 border-t border-border pt-6">
-            <label className="block text-sm font-medium text-ink mb-2">Add a Review / Comment</label>
+            <label className="block text-sm font-medium text-text mb-2">Add a Review / Comment</label>
             {reviewError && (
               <div className="bg-danger/10 text-danger p-3 rounded-xl text-sm mb-3">
                 {reviewError}
@@ -166,7 +166,7 @@ export default function ProgressDetail() {
             <textarea
               rows="3"
               required
-              className="w-full px-3 py-2 border border-border rounded-xl focus:outline-none focus-visible:ring-2 ring-brand-500 ring-offset-2 mb-3"
+              className="w-full px-4 py-3 border border-border rounded-xl mb-3 bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
               placeholder="Great work on..."
               value={newComment}
               onChange={e => setNewComment(e.target.value)}
@@ -175,7 +175,7 @@ export default function ProgressDetail() {
               <button
                 type="submit"
                 disabled={submittingReview}
-                className="bg-brand-500 text-white px-6 py-2 rounded-xl font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
+                className="bg-brand text-white px-6 py-2 rounded-xl font-medium hover:opacity-90 transition-colors disabled:opacity-50"
               >
                 {submittingReview ? 'Posting...' : 'Post Review'}
               </button>

@@ -32,20 +32,20 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-border h-screen flex flex-col">
+    <aside className="w-64 bg-navy text-white h-screen flex flex-col">
       <div className="p-6">
-        <h1 className="text-xl font-bold text-ink">Intern Tracker</h1>
+        <h1 className="text-xl font-bold tracking-tight"><span className="text-brand">Reset</span> <span className="text-white">Tracker</span></h1>
       </div>
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-5 flex flex-col gap-3 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
+              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-brand-50 text-brand-700 border-l-2 border-brand-500'
-                  : 'text-muted hover:text-ink hover:bg-surface'
+                  ? 'bg-brand text-white'
+                  : 'bg-white/5 border border-white/5 text-[#8595BD] hover:text-white hover:bg-white/10'
               }`
             }
           >
@@ -54,33 +54,33 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="p-4 border-t border-border flex flex-col gap-2">
+      <div className="p-5 border-t border-white/10 flex flex-col gap-3">
         <NavLink
           to="/settings"
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
+            `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
               isActive
-                ? 'bg-brand-50 text-brand-700 border-l-2 border-brand-500'
-                : 'text-muted hover:text-ink hover:bg-surface'
+                ? 'bg-brand text-white'
+                : 'bg-white/5 border border-white/5 text-[#8595BD] hover:text-white hover:bg-white/10'
             }`
           }
         >
           <SettingsIcon className="w-5 h-5" />
           <span className="font-medium">Settings</span>
         </NavLink>
-        
+
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors text-muted hover:text-ink hover:bg-surface w-full text-left"
+          className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors bg-white/5 border border-white/5 text-[#8595BD] hover:text-white hover:bg-white/10 w-full text-left"
         >
           <LogOut className="w-5 h-5" />
           <span className="font-medium">Sign Out</span>
         </button>
         
         {profile && (
-          <div className="mt-2 px-3 py-2 bg-surface rounded-xl">
-            <p className="text-sm font-medium text-ink truncate">{profile.full_name}</p>
-            <p className="text-xs text-muted capitalize">{profile.role}</p>
+          <div className="mt-2 px-3 py-2 bg-surface/5 rounded-xl">
+            <p className="text-sm font-medium text-white truncate">{profile.full_name}</p>
+            <p className="text-xs text-white/60 capitalize">{profile.role}</p>
           </div>
         )}
       </div>

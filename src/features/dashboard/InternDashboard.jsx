@@ -33,17 +33,17 @@ export function InternDashboard() {
   if (loading) return <div className="text-muted">Loading dashboard...</div>;
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-ink">Intern Dashboard</h2>
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold text-text">Intern Dashboard</h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Progress Status */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-border flex flex-col justify-between">
+        <div className="bg-surface px-5 py-4 rounded-2xl shadow-sm border border-border flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-ink">Today's Progress</h3>
+              <h3 className="text-lg font-medium text-text">Today's Progress</h3>
               {todayStatus === 'missing' ? (
-                <AlertCircle className="text-brand-500 w-6 h-6" />
+                <AlertCircle className="text-brand w-6 h-6" />
               ) : (
                 <CheckCircle className="text-success w-6 h-6" />
               )}
@@ -56,32 +56,32 @@ export function InternDashboard() {
           </div>
           <Link 
             to="/progress" 
-            className="text-center bg-brand-500 text-white hover:bg-brand-600 rounded-xl py-2 font-medium transition-colors"
+            className="text-center bg-brand text-white hover:opacity-90 rounded-xl py-2 font-medium transition-colors"
           >
             {todayStatus === 'missing' ? 'Add Progress' : 'Edit Progress'}
           </Link>
         </div>
 
         {/* Tasks */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-border">
+        <div className="bg-surface px-5 py-4 rounded-2xl shadow-sm border border-border">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-medium text-ink">Open Tasks</h3>
+            <h3 className="text-lg font-medium text-text">Open Tasks</h3>
             <FileText className="text-muted w-6 h-6" />
           </div>
-          <p className="text-4xl font-bold text-ink mb-4">{stats.openTasks}</p>
-          <Link to="/tasks" className="text-brand-600 hover:text-brand-700 text-sm font-medium">
+          <p className="text-4xl font-bold text-text mb-4">{stats.openTasks}</p>
+          <Link to="/tasks" className="text-brand hover:text-brand text-sm font-medium">
             View Tasks &rarr;
           </Link>
         </div>
 
         {/* Messages */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-border">
+        <div className="bg-surface px-5 py-4 rounded-2xl shadow-sm border border-border">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-medium text-ink">Unread Messages</h3>
+            <h3 className="text-lg font-medium text-text">Unread Messages</h3>
             <MessageSquare className="text-muted w-6 h-6" />
           </div>
-          <p className="text-4xl font-bold text-ink mb-4">{stats.unreadMessages}</p>
-          <Link to="/messages" className="text-brand-600 hover:text-brand-700 text-sm font-medium">
+          <p className="text-4xl font-bold text-text mb-4">{stats.unreadMessages}</p>
+          <Link to="/messages" className="text-brand hover:text-brand text-sm font-medium">
             Go to Messages &rarr;
           </Link>
         </div>

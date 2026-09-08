@@ -106,12 +106,12 @@ export default function Messages() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-border flex h-[calc(100vh-8rem)] overflow-hidden">
+    <div className="bg-surface rounded-xl shadow-sm border border-border flex h-[calc(100vh-4rem)] overflow-hidden">
       
       {/* Left sidebar: Contacts List */}
       <div className="w-1/3 border-r border-border flex flex-col bg-surface">
-        <div className="p-4 border-b border-border bg-white">
-          <h2 className="text-xl font-bold text-ink">Messages</h2>
+        <div className="p-4 border-b border-border bg-surface">
+          <h2 className="text-xl font-bold text-text">Messages</h2>
         </div>
         
         <div className="flex-1 overflow-y-auto">
@@ -129,24 +129,24 @@ export default function Messages() {
                     key={contact.id}
                     onClick={() => setActiveContact(contact)}
                     className={`w-full text-left p-4 flex items-center justify-between transition-colors ${
-                      isActive ? 'bg-brand-50' : 'hover:bg-white'
+                      isActive ? 'bg-brand-tint' : 'hover:bg-hover-bg'
                     }`}
                   >
                     <div className="flex items-center gap-3 overflow-hidden">
-                      <div className={`p-2 rounded-full flex-shrink-0 ${isActive ? 'bg-brand-500 text-white' : 'bg-border text-muted'}`}>
+                      <div className={`p-2 rounded-full flex-shrink-0 ${isActive ? 'bg-brand text-white' : 'bg-border text-muted'}`}>
                         <User className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className={`font-medium truncate ${isActive ? 'text-brand-700' : 'text-ink'}`}>
+                        <p className={`font-medium truncate ${isActive ? 'text-brand' : 'text-text'}`}>
                           {contact.full_name}
                         </p>
-                        <p className={`text-xs capitalize truncate ${isActive ? 'text-brand-600/80' : 'text-muted'}`}>
+                        <p className={`text-xs capitalize truncate ${isActive ? 'text-brand/80' : 'text-muted'}`}>
                           {contact.role}
                         </p>
                       </div>
                     </div>
                     {unread > 0 && (
-                      <span className="bg-brand-500 text-white text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0">
+                      <span className="bg-brand text-white text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0">
                         {unread}
                       </span>
                     )}
@@ -159,11 +159,11 @@ export default function Messages() {
       </div>
 
       {/* Right panel: Active Thread */}
-      <div className="flex-1 flex flex-col bg-white">
+      <div className="flex-1 flex flex-col bg-surface">
         {activeContact ? (
           <>
             <div className="p-4 border-b border-border flex items-center gap-3">
-              <h3 className="text-lg font-bold text-ink">{activeContact.full_name}</h3>
+              <h3 className="text-lg font-bold text-text">{activeContact.full_name}</h3>
               <span className="text-xs bg-surface text-muted px-2 py-1 rounded-full capitalize">
                 {activeContact.role}
               </span>
@@ -182,8 +182,8 @@ export default function Messages() {
                       <div 
                         className={`max-w-[75%] rounded-2xl px-4 py-2 ${
                           isMine 
-                            ? 'bg-brand-500 text-white rounded-br-sm' 
-                            : 'bg-surface border border-border text-ink rounded-bl-sm'
+                            ? 'bg-brand-tint border border-[rgba(248,72,26,0.4)] text-brand rounded-br-sm' 
+                            : 'bg-surface border border-border text-text rounded-bl-sm'
                         }`}
                       >
                         <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
@@ -201,7 +201,7 @@ export default function Messages() {
             <form onSubmit={handleSend} className="p-4 border-t border-border bg-surface flex gap-2">
               <input
                 type="text"
-                className="flex-1 px-4 py-2 bg-white border border-border rounded-full focus:outline-none focus-visible:ring-2 ring-brand-500"
+                className="flex-1 px-4 py-2 border border-border rounded-full bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
                 placeholder="Type a message..."
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
@@ -209,7 +209,7 @@ export default function Messages() {
               <button
                 type="submit"
                 disabled={sending || !newMessage.trim()}
-                className="p-2 bg-brand-500 text-white rounded-full hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                className="p-2 bg-brand text-white rounded-full hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
               >
                 <Send className="w-5 h-5 -ml-0.5 mt-0.5" />
               </button>

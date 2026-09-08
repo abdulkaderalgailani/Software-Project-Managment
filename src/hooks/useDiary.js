@@ -44,9 +44,35 @@ export function useDiary() {
     return { data, error };
   }, [user]);
 
+  const updateDiaryEntry = useCallback(async (entryId, payload) => {
+    if (!user) return { data: null, error: new Error('Not authenticated') };
+    
+    const { data, error } = await supabase
+      .from('diary_entries')
+      .update(payload)
+      .eq('id', entryId)
+      .select()
+      .single();
+
+    return { data, error };
+  }, [user]);
+
+  const deleteDiaryEntry = useCallback(async (entryId) => {
+    if (!user) return { error: new Error('Not authenticated') };
+    
+    const { error } = await supabase
+      .from('diary_entries')
+      .delete()
+      .eq('id', entryId);
+
+    return { error };
+  }, [user]);
+
   return {
     fetchVisibleDiaryEntries,
     fetchTodayDiary,
     upsertDiary,
+    updateDiaryEntry,
+    deleteDiaryEntry,
   };
 }
