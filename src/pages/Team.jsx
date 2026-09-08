@@ -5,30 +5,54 @@ import { Users, Mail, User, Shield, ShieldAlert } from 'lucide-react';
 
 export default function Team() {
   const { profile } = useAuth();
-  const { fetchTeam } = useTeam();
+  const { fetchTeam, fetchPendingUsers, approveUser } = useTeam();
   
   const [team, setTeam] = useState([]);
+  const [pendingUsers, setPendingUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('directory'); // 'directory' or 'approvals'
+
+  const isAdmin = profile?.role === 'admin';
+
+  const loadData = async () => {
+    if (!profile) return;
+    setLoading(true);
+    setError(null);
+    
+    const { data: teamData, error: fetchError } = await fetchTeam(profile);
+    
+    if (fetchError) {
+      setError(fetchError.message);
+    } else if (teamData) {
+      setTeam(teamData);
+    }
+
+    if (isAdmin) {
+      const { data: pendingData } = await fetchPendingUsers(profile);
+      if (pendingData) setPendingUsers(pendingData);
+    }
+
+    setLoading(false);
+  };
 
   useEffect(() => {
-    async function loadTeam() {
-      if (!profile) return;
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+
+  const handleApprove = async (userId, role) => {
+    if (window.confirm(`Approve user as ${role}?`)) {
       setLoading(true);
-      setError(null);
-      
-      const { data, error: fetchError } = await fetchTeam(profile);
-      
-      if (fetchError) {
-        setError(fetchError.message);
-      } else if (data) {
-        setTeam(data);
+      const { error } = await approveUser(userId, role);
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+      } else {
+        loadData();
       }
-      setLoading(false);
     }
-    
-    loadTeam();
-  }, [profile, fetchTeam]);
+  };
 
   // Helper to render role badge
   const renderRoleBadge = (role) => {
@@ -53,7 +77,7 @@ export default function Team() {
         );
       default:
         return (
-          <span className="flex items-center gap-1 text-xs font-bold bg-surface text-muted px-2 py-1 rounded-full uppercase tracking-wider">
+          <span className="flex items-center gap-1 text-xs font-bold bg-surface text-muted px-2 py-1 rounded-full uppercase tracking-wider border border-border">
             Intern
           </span>
         );
@@ -63,23 +87,57 @@ export default function Team() {
   if (!profile) return null;
 
   return (
-    <div className="max-w-5xl space-y-4">
-      <div className="flex items-center gap-3">
-        <Users className="w-8 h-8 text-brand" />
-        <h2 className="text-2xl font-bold text-text">
-          {['admin', 'super_supervisor'].includes(profile.role) ? 'Organization Directory' : 'My Team'}
-        </h2>
+    <div className="max-w-5xl space-y-4 relative">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Users className="w-8 h-8 text-brand" />
+          <h2 className="text-2xl font-bold text-text">
+            {['admin', 'super_supervisor'].includes(profile.role) ? 'Organization Directory' : 'My Team'}
+          </h2>
+        </div>
+        
+        {isAdmin && (
+          <div className="flex bg-surface-nested p-1 rounded-xl border border-border shadow-sm">
+            <button
+              onClick={() => setActiveTab('directory')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'directory' 
+                  ? 'bg-surface text-text shadow-sm' 
+                  : 'text-muted hover:text-text'
+              }`}
+            >
+              Directory
+            </button>
+            <button
+              onClick={() => setActiveTab('approvals')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                activeTab === 'approvals' 
+                  ? 'bg-brand text-white shadow-sm' 
+                  : 'text-muted hover:text-text'
+              }`}
+            >
+              Pending Approvals
+              {pendingUsers.length > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-xs ${
+                  activeTab === 'approvals' ? 'bg-white/20' : 'bg-brand text-white'
+                }`}>
+                  {pendingUsers.length}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (
         <div className="bg-danger/10 text-danger p-4 rounded-xl text-sm font-medium">
-          Error loading team: {error}
+          Error: {error}
         </div>
       )}
 
       {loading ? (
         <div className="bg-surface p-5 rounded-xl shadow-sm border border-border text-muted">
-          Loading team data...
+          Loading data...
         </div>
       ) : profile.role === 'intern' ? (
         <div className="bg-surface p-8 rounded-xl shadow-sm border border-border text-center">
@@ -95,6 +153,42 @@ export default function Team() {
               </span>
             )}
           </p>
+        </div>
+      ) : activeTab === 'approvals' && isAdmin ? (
+        <div className="space-y-4">
+          {pendingUsers.length === 0 ? (
+            <div className="bg-surface p-8 rounded-xl shadow-sm border border-border text-center text-muted">
+              No pending approvals.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pendingUsers.map(user => (
+                <div key={user.id} className="bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3">
+                  <div>
+                    <h3 className="font-bold text-text text-lg">{user.full_name}</h3>
+                    <div className="flex items-center gap-2 text-sm text-muted mt-1">
+                      <Mail className="w-4 h-4" /> {user.email}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-2 pt-3 border-t border-border flex gap-2">
+                    <button 
+                      onClick={() => handleApprove(user.id, 'intern')}
+                      className="flex-1 bg-surface-nested hover:bg-hover-bg text-text text-sm font-bold py-2 rounded-lg border border-border transition-colors"
+                    >
+                      Approve Intern
+                    </button>
+                    <button 
+                      onClick={() => handleApprove(user.id, 'supervisor')}
+                      className="flex-1 bg-brand text-white text-sm font-bold py-2 rounded-lg hover:opacity-90 transition-opacity"
+                    >
+                      Approve Sup.
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -112,7 +206,6 @@ export default function Team() {
                   <div className="flex-1">
                     <h3 className="font-bold text-text text-lg line-clamp-1">{member.full_name}</h3>
                   </div>
-                  {/* For admin/super, we show roles. For supervisor, they only see interns anyway, but we can still show the badge. */}
                   {['admin', 'super_supervisor'].includes(profile.role) && (
                     <div className="flex-shrink-0 ml-2">
                       {renderRoleBadge(member.role)}

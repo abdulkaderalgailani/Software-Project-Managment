@@ -40,6 +40,7 @@ export default function Progress() {
   };
 
   const isIntern = profile?.role === 'intern';
+  const isGuest = profile?.role === 'guest';
 
   const loadData = async () => {
     if (!user) return;
@@ -247,7 +248,7 @@ export default function Progress() {
                   </div>
                   <div className="flex flex-col items-end gap-2">
 
-                    {user.id === entry.intern_id && (
+                    {!isGuest && user.id === entry.intern_id && (
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={(e) => handleEditClick(e, entry)} className="text-muted hover:text-brand transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Edit Entry">
                           <Edit2 className="w-4 h-4" />

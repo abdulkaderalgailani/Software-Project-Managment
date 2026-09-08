@@ -15,6 +15,7 @@ export default function Tasks() {
   const [editingTask, setEditingTask] = useState(null);
   
   const canAssign = profile && ['supervisor', 'super_supervisor', 'admin'].includes(profile.role);
+  const isGuest = profile?.role === 'guest';
 
   const loadTasks = async () => {
     setLoading(true);
@@ -57,7 +58,7 @@ export default function Tasks() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-text">Tasks</h2>
-        {canAssign && (
+        {!isGuest && canAssign && (
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-xl font-medium hover:opacity-90 transition-colors"
@@ -80,6 +81,7 @@ export default function Tasks() {
             onDelete={handleDelete}
             canAssign={canAssign}
             userId={user?.id}
+            isGuest={isGuest}
           />
           <TaskColumn 
             title="In Progress" 
@@ -91,6 +93,7 @@ export default function Tasks() {
             onDelete={handleDelete}
             canAssign={canAssign}
             userId={user?.id}
+            isGuest={isGuest}
           />
           <TaskColumn 
             title="Done" 
@@ -101,6 +104,7 @@ export default function Tasks() {
             onDelete={handleDelete}
             canAssign={canAssign}
             userId={user?.id}
+            isGuest={isGuest}
           />
         </div>
       )}
@@ -125,7 +129,7 @@ export default function Tasks() {
   );
 }
 
-function TaskColumn({ title, tasks, prevStatus, nextStatus, onStatusChange, onEdit, onDelete, canAssign, userId }) {
+function TaskColumn({ title, tasks, prevStatus, nextStatus, onStatusChange, onEdit, onDelete, canAssign, userId, isGuest }) {
   return (
     <div className="bg-surface-nested rounded-xl p-4 flex flex-col gap-4 border border-border min-h-[500px]">
       <div className="flex items-center justify-between px-1">
@@ -143,7 +147,7 @@ function TaskColumn({ title, tasks, prevStatus, nextStatus, onStatusChange, onEd
                 <h4 className="font-bold text-text line-clamp-2">{task.title}</h4>
                 {task.priority === 'high' && <AlertCircle className="w-4 h-4 text-danger flex-shrink-0" />}
 
-                {canAssign && (
+                {!isGuest && canAssign && (
                   <div className="flex gap-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => onEdit(task)} className="text-muted hover:text-brand transition-colors p-1" title="Edit Task">
                       <Edit2 className="w-4 h-4" />
@@ -168,7 +172,7 @@ function TaskColumn({ title, tasks, prevStatus, nextStatus, onStatusChange, onEd
                 )}
               </div>
               
-              {(canAssign || task.assigned_to === userId) && (prevStatus || nextStatus) && (
+              {!isGuest && (canAssign || task.assigned_to === userId) && (prevStatus || nextStatus) && (
                 <div className="flex gap-2 mt-2">
                   {prevStatus && (
                     <button

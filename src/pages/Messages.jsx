@@ -5,7 +5,8 @@ import { format, parseISO } from 'date-fns';
 import { Send, User, MessageSquare } from 'lucide-react';
 
 export default function Messages() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const isGuest = profile?.role === 'guest';
   const { 
     fetchContacts, 
     fetchUnreadCounts, 
@@ -198,22 +199,28 @@ export default function Messages() {
               <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={handleSend} className="p-4 border-t border-border bg-surface flex gap-2">
-              <input
-                type="text"
-                className="flex-1 px-4 py-2 border border-border rounded-full bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
-                placeholder="Type a message..."
-                value={newMessage}
-                onChange={e => setNewMessage(e.target.value)}
-              />
-              <button
-                type="submit"
-                disabled={sending || !newMessage.trim()}
-                className="p-2 bg-brand text-white rounded-full hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-              >
-                <Send className="w-5 h-5 -ml-0.5 mt-0.5" />
-              </button>
-            </form>
+            {!isGuest ? (
+              <form onSubmit={handleSend} className="p-4 border-t border-border bg-surface flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 px-4 py-2 border border-border rounded-full bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+                  placeholder="Type a message..."
+                  value={newMessage}
+                  onChange={e => setNewMessage(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  disabled={sending || !newMessage.trim()}
+                  className="p-2 bg-brand text-white rounded-full hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                >
+                  <Send className="w-5 h-5 -ml-0.5 mt-0.5" />
+                </button>
+              </form>
+            ) : (
+              <div className="p-4 border-t border-border bg-surface text-center text-muted text-sm">
+                Messaging is disabled in demo mode.
+              </div>
+            )}
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted">

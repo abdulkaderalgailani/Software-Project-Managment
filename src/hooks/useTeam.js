@@ -51,5 +51,37 @@ export function useTeam() {
     }
   }, []);
 
-  return { fetchTeam };
+  const fetchPendingUsers = useCallback(async (profile) => {
+    if (!profile || profile.role !== 'admin') return { data: null, error: new Error("Unauthorized") };
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, role, status, created_at')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      
+      return { data, error };
+    } catch (err) {
+      return { data: null, error: err };
+    }
+  }, []);
+
+  const approveUser = useCallback(async (userId, role, supervisorId = null) => {
+    try {
+      const payload = { status: 'active', role };
+      if (supervisorId) payload.supervisor_id = supervisorId;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(payload)
+        .eq('id', userId);
+      
+      return { error };
+    } catch (err) {
+      return { error: err };
+    }
+  }, []);
+
+  return { fetchTeam, fetchPendingUsers, approveUser };
 }
