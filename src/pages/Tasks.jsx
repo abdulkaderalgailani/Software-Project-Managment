@@ -163,12 +163,17 @@ function TaskColumn({ title, tasks, prevStatus, nextStatus, onStatusChange, onEd
             </div>
             
             <div className="flex flex-col gap-2 mt-auto pt-2 border-t border-border">
-              <div className="flex justify-between items-center text-xs text-muted">
-                <span className="font-medium truncate pr-2">To: {task.assignee?.full_name || 'Unassigned'}</span>
-                {task.due_date && (
-                  <span className="flex items-center gap-1 flex-shrink-0">
-                    <Clock className="w-3 h-3" /> {format(parseISO(task.due_date), 'MMM d')}
-                  </span>
+              <div className="flex flex-col gap-1 text-xs text-muted">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium truncate pr-2">To: {task.assignee?.full_name || 'Unassigned'}</span>
+                  {task.due_date && (
+                    <span className="flex items-center gap-1 flex-shrink-0">
+                      <Clock className="w-3 h-3" /> {format(parseISO(task.due_date), 'MMM d')}
+                    </span>
+                  )}
+                </div>
+                {task.assigner && (
+                  <span className="truncate">From: {task.assigner.full_name}</span>
                 )}
               </div>
               

@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTeam } from '../hooks/useTeam';
-import { Users, Mail, User, Shield, ShieldAlert } from 'lucide-react';
+import { Users, Mail, User, Shield, ShieldAlert, Calendar } from 'lucide-react';
+import { InternProgress } from '../components/ui/InternProgress';
+import { Modal } from '../components/ui/Modal';
 
 export default function Team() {
   const { profile } = useAuth();
-  const { fetchTeam, fetchPendingUsers, approveUser } = useTeam();
+  const { fetchTeam, fetchPendingUsers, approveUser, setInternshipDates } = useTeam();
   
   const [team, setTeam] = useState([]);
   const [pendingUsers, setPendingUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('directory'); // 'directory' or 'approvals'
+  const [editingDatesUser, setEditingDatesUser] = useState(null);
 
   const isAdmin = profile?.role === 'admin';
+  const canSetDates = ['admin', 'super_supervisor', 'supervisor'].includes(profile?.role);
 
   const loadData = async () => {
     if (!profile) return;
@@ -163,11 +167,12 @@ export default function Team() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {pendingUsers.map(user => (
-                <div key={user.id} className="bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3">
-                  <div>
-                    <h3 className="font-bold text-text text-lg">{user.full_name}</h3>
-                    <div className="flex items-center gap-2 text-sm text-muted mt-1">
-                      <Mail className="w-4 h-4" /> {user.email}
+                <div key={user.id} className="bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3 overflow-hidden">
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-text text-lg truncate" title={user.full_name}>{user.full_name}</h3>
+                    <div className="flex items-center gap-2 text-sm text-muted mt-1 min-w-0">
+                      <Mail className="w-4 h-4 flex-shrink-0" /> 
+                      <span className="truncate" title={user.email}>{user.email}</span>
                     </div>
                   </div>
                   
@@ -200,11 +205,11 @@ export default function Team() {
             team.map((member) => (
               <div 
                 key={member.id} 
-                className="bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3 hover:shadow-md transition-shadow"
+                className="bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3 hover:shadow-md transition-shadow overflow-hidden group"
               >
                 <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-text text-lg line-clamp-1">{member.full_name}</h3>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-text text-lg truncate" title={member.full_name}>{member.full_name}</h3>
                   </div>
                   {['admin', 'super_supervisor'].includes(profile.role) && (
                     <div className="flex-shrink-0 ml-2">
@@ -213,17 +218,119 @@ export default function Team() {
                   )}
                 </div>
                 
-                <div className="flex items-center gap-2 text-sm text-muted mt-auto">
+                <div className="flex items-center gap-2 text-sm text-muted min-w-0">
                   <Mail className="w-4 h-4 flex-shrink-0" />
-                  <a href={`mailto:${member.email}`} className="truncate hover:text-brand transition-colors">
+                  <a href={`mailto:${member.email}`} className="truncate hover:text-brand transition-colors" title={member.email}>
                     {member.email}
                   </a>
                 </div>
+
+                {member.role === 'intern' && (
+                  <div className="mt-auto pt-3 border-t border-border">
+                    <InternProgress 
+                      startDate={member.internship_start_date} 
+                      endDate={member.internship_end_date} 
+                      compact 
+                    />
+                    {canSetDates && (
+                      <button
+                        onClick={() => setEditingDatesUser(member)}
+                        className="mt-3 w-full text-xs font-bold text-text bg-surface-nested border border-border hover:bg-hover-bg py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      >
+                        <Calendar className="w-3 h-3" /> Edit Dates
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))
           )}
         </div>
       )}
+
+      {editingDatesUser && (
+        <EditDatesModal 
+          user={editingDatesUser} 
+          onClose={() => setEditingDatesUser(null)} 
+          setInternshipDates={setInternshipDates}
+          onSuccess={() => {
+            setEditingDatesUser(null);
+            loadData();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function EditDatesModal({ user, onClose, onSuccess, setInternshipDates }) {
+  const [startDate, setStartDate] = useState(user.internship_start_date || '');
+  const [endDate, setEndDate] = useState(user.internship_end_date || '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const { error: rpcError } = await setInternshipDates(user.id, startDate || null, endDate || null);
+    
+    setLoading(false);
+    if (rpcError) {
+      setError(rpcError.message);
+    } else {
+      onSuccess();
+    }
+  };
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title={`Edit Dates: ${user.full_name}`}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="bg-danger/10 text-danger p-3 rounded-xl text-sm font-medium">
+            {error}
+          </div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-text mb-1">Start Date</label>
+            <input
+              type="date"
+              className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-text mb-1">End Date</label>
+            <input
+              type="date"
+              className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+        <div className="pt-4 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 font-medium text-text bg-surface border border-border hover:bg-hover-bg rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 font-medium text-white bg-brand hover:opacity-90 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : 'Save Dates'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

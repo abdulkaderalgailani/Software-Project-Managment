@@ -10,7 +10,7 @@ export function useTeam() {
         // Fetch all profiles
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, email, full_name, role')
+          .select('id, email, full_name, role, internship_start_date, internship_end_date')
           .order('role', { ascending: true })
           .order('full_name', { ascending: true });
         
@@ -21,7 +21,7 @@ export function useTeam() {
         // Fetch their own interns
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, email, full_name, role')
+          .select('id, email, full_name, role, internship_start_date, internship_end_date')
           .eq('supervisor_id', profile.id)
           .order('full_name', { ascending: true });
           
@@ -36,7 +36,7 @@ export function useTeam() {
         
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, email, full_name, role')
+          .select('id, email, full_name, role, internship_start_date, internship_end_date')
           .eq('id', profile.supervisor_id)
           .single();
           
@@ -83,5 +83,18 @@ export function useTeam() {
     }
   }, []);
 
-  return { fetchTeam, fetchPendingUsers, approveUser };
+  const setInternshipDates = useCallback(async (targetInternId, startDate, endDate) => {
+    try {
+      const { error } = await supabase.rpc('set_internship_dates', {
+        target_intern: targetInternId,
+        start_date: startDate,
+        end_date: endDate
+      });
+      return { error };
+    } catch (err) {
+      return { error: err };
+    }
+  }, []);
+
+  return { fetchTeam, fetchPendingUsers, approveUser, setInternshipDates };
 }

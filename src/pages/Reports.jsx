@@ -34,6 +34,7 @@ export default function Reports() {
   };
 
   const isIntern = profile?.role === 'intern';
+  const isGuest = profile?.role === 'guest';
   const thisWeekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'); // Monday as start
 
   const loadData = async () => {
@@ -174,7 +175,7 @@ export default function Reports() {
             {entries.map((entry) => (
               <div
                 key={entry.id}
-                className="bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3"
+                className="group bg-surface p-5 rounded-xl shadow-sm border border-border flex flex-col gap-3"
               >
                 <div className="flex justify-between items-start border-b border-border pb-4">
                   <div>
@@ -188,6 +189,16 @@ export default function Reports() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
+                    {!isGuest && user.id === entry.intern_id && (
+                      <div className="flex gap-2 mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEditClick(entry)} className="text-muted hover:text-brand transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Edit Report">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(entry.id)} className="text-muted hover:text-danger transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Delete Report">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                     <span className={`text-xs font-medium px-2 py-1 rounded-full capitalize ${
                       entry.status === 'submitted' ? 'bg-success/10 text-success' : 'bg-surface text-muted'
                     }`}>

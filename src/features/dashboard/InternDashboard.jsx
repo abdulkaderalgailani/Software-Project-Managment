@@ -4,9 +4,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useDashboard } from '../../hooks/useDashboard';
 import { useProgress } from '../../hooks/useProgress';
 import { CheckCircle, AlertCircle, FileText, MessageSquare } from 'lucide-react';
+import { InternProgress } from '../../components/ui/InternProgress';
 
 export function InternDashboard() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { fetchInternStats } = useDashboard();
   const { fetchTodayProgress } = useProgress();
   
@@ -36,6 +37,14 @@ export function InternDashboard() {
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-text">Intern Dashboard</h2>
       
+      <div className="bg-surface px-5 py-4 rounded-2xl shadow-sm border border-border">
+        <h3 className="text-lg font-medium text-text mb-3">Internship Progress</h3>
+        <InternProgress 
+          startDate={profile?.internship_start_date} 
+          endDate={profile?.internship_end_date} 
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Progress Status */}
         <div className="bg-surface px-5 py-4 rounded-2xl shadow-sm border border-border flex flex-col justify-between">

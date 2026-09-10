@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useDashboard } from '../../hooks/useDashboard';
 import { Users, FileCheck, AlertCircle, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { InternProgress } from '../../components/ui/InternProgress';
 
 export function SupervisorDashboard() {
   const { user } = useAuth();
@@ -61,10 +62,17 @@ export function SupervisorDashboard() {
         ) : (
           <div className="divide-y divide-border">
             {data.interns.map(intern => (
-              <div key={intern.id} className="px-5 py-4 flex items-center justify-between hover:bg-hover-bg transition-colors border-l-4 border-l-brand-500">
-                <div>
+              <div key={intern.id} className="px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-hover-bg transition-colors border-l-4 border-l-brand-500">
+                <div className="flex-1">
                   <p className="font-medium text-text">{intern.full_name}</p>
-                  <p className="text-sm text-muted">{intern.email}</p>
+                  <p className="text-sm text-muted mb-2">{intern.email}</p>
+                  <div className="max-w-xs">
+                    <InternProgress 
+                      startDate={intern.internship_start_date}
+                      endDate={intern.internship_end_date}
+                      compact
+                    />
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-3">

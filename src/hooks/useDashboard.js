@@ -36,7 +36,7 @@ export function useDashboard() {
     // Fetch interns under this supervisor
     const { data: internsData } = await supabase
       .from('profiles')
-      .select('id, full_name, email')
+      .select('id, full_name, email, internship_start_date, internship_end_date')
       .eq('supervisor_id', supervisorId)
       .eq('role', 'intern');
 

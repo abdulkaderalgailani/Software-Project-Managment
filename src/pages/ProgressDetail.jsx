@@ -123,7 +123,7 @@ export default function ProgressDetail() {
 
           {entry.blockers && (
             <section>
-              <h3 className="text-lg font-bold text-text mb-2">Blockers</h3>
+              <h3 className="text-lg font-bold text-text mb-2">Pending Issues</h3>
               <p className="text-muted whitespace-pre-wrap leading-relaxed">{entry.blockers}</p>
             </section>
           )}
