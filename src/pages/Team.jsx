@@ -7,7 +7,7 @@ import { Modal } from '../components/ui/Modal';
 
 export default function Team() {
   const { profile } = useAuth();
-  const { fetchTeam, fetchPendingUsers, approveUser, setInternshipDates } = useTeam();
+  const { fetchTeam, fetchPendingUsers, approveUser, setInternshipDates, assignSupervisor } = useTeam();
   
   const [team, setTeam] = useState([]);
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -15,9 +15,12 @@ export default function Team() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('directory'); // 'directory' or 'approvals'
   const [editingDatesUser, setEditingDatesUser] = useState(null);
+  const [assigningSupervisorUser, setAssigningSupervisorUser] = useState(null);
 
   const isAdmin = profile?.role === 'admin';
   const canSetDates = ['admin', 'super_supervisor', 'supervisor'].includes(profile?.role);
+  
+  const supervisorsList = team.filter(u => ['supervisor', 'super_supervisor'].includes(u.role));
 
   const loadData = async () => {
     if (!profile) return;
@@ -86,6 +89,12 @@ export default function Team() {
           </span>
         );
     }
+  };
+
+  const getSupervisorName = (supervisorId) => {
+    if (!supervisorId) return 'Unassigned';
+    const sup = team.find(u => u.id === supervisorId);
+    return sup ? sup.full_name : 'Unassigned';
   };
 
   if (!profile) return null;
@@ -227,18 +236,36 @@ export default function Team() {
 
                 {member.role === 'intern' && (
                   <div className="mt-auto pt-3 border-t border-border">
+                    {isAdmin && (
+                      <div className="mb-3 text-sm flex items-center justify-between">
+                        <span className="text-muted">Supervisor:</span>
+                        <span className="font-medium text-text truncate ml-2" title={getSupervisorName(member.supervisor_id)}>
+                          {getSupervisorName(member.supervisor_id)}
+                        </span>
+                      </div>
+                    )}
                     <InternProgress 
                       startDate={member.internship_start_date} 
                       endDate={member.internship_end_date} 
                       compact 
                     />
                     {canSetDates && (
-                      <button
-                        onClick={() => setEditingDatesUser(member)}
-                        className="mt-3 w-full text-xs font-bold text-text bg-surface-nested border border-border hover:bg-hover-bg py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 focus:opacity-100"
-                      >
-                        <Calendar className="w-3 h-3" /> Edit Dates
-                      </button>
+                      <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setEditingDatesUser(member)}
+                          className="flex-1 text-xs font-bold text-text bg-surface-nested border border-border hover:bg-hover-bg py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Calendar className="w-3 h-3" /> Edit Dates
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => setAssigningSupervisorUser(member)}
+                            className="flex-1 text-xs font-bold text-text bg-surface-nested border border-border hover:bg-hover-bg py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1"
+                          >
+                            <User className="w-3 h-3" /> Assign Sup.
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -259,7 +286,86 @@ export default function Team() {
           }}
         />
       )}
+
+      {assigningSupervisorUser && (
+        <AssignSupervisorModal
+          user={assigningSupervisorUser}
+          supervisors={supervisorsList}
+          actorId={profile.id}
+          onClose={() => setAssigningSupervisorUser(null)}
+          assignSupervisor={assignSupervisor}
+          onSuccess={() => {
+            setAssigningSupervisorUser(null);
+            loadData();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function AssignSupervisorModal({ user, supervisors, actorId, onClose, onSuccess, assignSupervisor }) {
+  const [supervisorId, setSupervisorId] = useState(user.supervisor_id || '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const targetSupervisor = supervisorId || null;
+    const { error: assignError } = await assignSupervisor(user.id, targetSupervisor, actorId);
+    
+    setLoading(false);
+    if (assignError) {
+      setError(assignError.message);
+    } else {
+      onSuccess();
+    }
+  };
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title={`Assign Supervisor: ${user.full_name}`}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="bg-danger/10 text-danger p-3 rounded-xl text-sm font-medium">
+            {error}
+          </div>
+        )}
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">Select Supervisor</label>
+          <select
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+            value={supervisorId}
+            onChange={(e) => setSupervisorId(e.target.value)}
+          >
+            <option value="">Unassigned</option>
+            {supervisors.map(sup => (
+              <option key={sup.id} value={sup.id}>
+                {sup.full_name} ({sup.role === 'super_supervisor' ? 'Super Sup.' : 'Supervisor'})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="pt-4 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 font-medium text-text bg-surface border border-border hover:bg-hover-bg rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 font-medium text-white bg-brand hover:opacity-90 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 

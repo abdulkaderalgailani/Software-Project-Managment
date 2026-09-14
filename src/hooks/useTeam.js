@@ -10,7 +10,7 @@ export function useTeam() {
         // Fetch all profiles
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, email, full_name, role, internship_start_date, internship_end_date')
+          .select('id, email, full_name, role, internship_start_date, internship_end_date, supervisor_id')
           .order('role', { ascending: true })
           .order('full_name', { ascending: true });
         
@@ -96,5 +96,31 @@ export function useTeam() {
     }
   }, []);
 
-  return { fetchTeam, fetchPendingUsers, approveUser, setInternshipDates };
+  const assignSupervisor = useCallback(async (internId, supervisorId, actorId) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ supervisor_id: supervisorId })
+        .eq('id', internId);
+        
+      if (error) return { error };
+
+      // Log the action
+      const { error: logError } = await supabase
+        .from('activity_logs')
+        .insert({
+          actor_id: actorId,
+          action: 'supervisor.assigned',
+          entity_type: 'profile',
+          entity_id: internId,
+          metadata: { new_supervisor_id: supervisorId }
+        });
+
+      return { error: logError };
+    } catch (err) {
+      return { error: err };
+    }
+  }, []);
+
+  return { fetchTeam, fetchPendingUsers, approveUser, setInternshipDates, assignSupervisor };
 }
