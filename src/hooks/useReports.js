@@ -79,11 +79,27 @@ export function useReports() {
     return { error };
   }, [user]);
 
+  const editReportRpc = useCallback(async (reportId, newContent) => {
+    if (!user) return { data: null, error: new Error('Not authenticated') };
+    
+    const { data, error } = await supabase.rpc('edit_weekly_report', {
+      report_id: reportId,
+      new_content: newContent
+    });
+
+    if (!error) {
+      await logActivity(user.id, 'report.updated_by_supervisor', 'weekly_report', reportId);
+    }
+
+    return { data, error };
+  }, [user]);
+
   return {
     fetchVisibleReports,
     fetchThisWeekReport,
     upsertReport,
     updateReport,
     deleteReport,
+    editReportRpc,
   };
 }

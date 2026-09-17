@@ -68,11 +68,23 @@ export function useDiary() {
     return { error };
   }, [user]);
 
+  const editDiaryRpc = useCallback(async (entryId, newContent) => {
+    if (!user) return { data: null, error: new Error('Not authenticated') };
+    
+    const { data, error } = await supabase.rpc('edit_diary_entry', {
+      entry_id: entryId,
+      new_content: newContent
+    });
+
+    return { data, error };
+  }, [user]);
+
   return {
     fetchVisibleDiaryEntries,
     fetchTodayDiary,
     upsertDiary,
     updateDiaryEntry,
     deleteDiaryEntry,
+    editDiaryRpc,
   };
 }

@@ -4,6 +4,7 @@ import { useReports } from '../hooks/useReports';
 import { format, parseISO, startOfWeek } from 'date-fns';
 import { Edit2, Trash2 } from 'lucide-react';
 import { Modal } from '../components/ui/Modal';
+import { EntryComments } from '../components/ui/EntryComments';
 
 export default function Reports() {
   const { user, profile } = useAuth();
@@ -20,6 +21,7 @@ export default function Reports() {
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [editingReport, setEditingReport] = useState(null);
+  const [supervisorEditingReport, setSupervisorEditingReport] = useState(null);
 
   
   const handleDelete = async (id) => {
@@ -31,6 +33,10 @@ export default function Reports() {
 
   const handleEditClick = (report) => {
     setEditingReport(report);
+  };
+
+  const handleSupervisorEditClick = (report) => {
+    setSupervisorEditingReport(report);
   };
 
   const isIntern = profile?.role === 'intern';
@@ -189,14 +195,22 @@ export default function Reports() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {!isGuest && user.id === entry.intern_id && (
+                    {!isGuest && (
                       <div className="flex gap-2 mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleEditClick(entry)} className="text-muted hover:text-brand transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Edit Report">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(entry.id)} className="text-muted hover:text-danger transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Delete Report">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {user.id === entry.intern_id ? (
+                          <>
+                            <button onClick={() => handleEditClick(entry)} className="text-muted hover:text-brand transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Edit Report">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDelete(entry.id)} className="text-muted hover:text-danger transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Delete Report">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : !isIntern ? (
+                          <button onClick={() => handleSupervisorEditClick(entry)} className="text-muted hover:text-brand transition-colors p-1 bg-surface rounded-full shadow-sm border border-border" title="Supervisor Edit">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        ) : null}
                       </div>
                     )}
                     <span className={`text-xs font-medium px-2 py-1 rounded-full capitalize ${
@@ -209,6 +223,7 @@ export default function Reports() {
                 <div className="prose prose-sm max-w-none text-text whitespace-pre-wrap">
                   {entry.content}
                 </div>
+                <EntryComments entryType="weekly_report" entryId={entry.id} internId={entry.intern_id} />
               </div>
             ))}
           </div>
@@ -218,6 +233,13 @@ export default function Reports() {
         <EditReportModal
           report={editingReport}
           onClose={() => setEditingReport(null)}
+          onUpdated={loadData}
+        />
+      )}
+      {supervisorEditingReport && (
+        <SupervisorEditReportModal
+          report={supervisorEditingReport}
+          onClose={() => setSupervisorEditingReport(null)}
           onUpdated={loadData}
         />
       )}
@@ -293,6 +315,78 @@ function EditReportModal({ report, onClose, onUpdated }) {
             <option value="draft">Draft</option>
             <option value="submitted">Submitted</option>
           </select>
+        </div>
+
+        <div className="pt-4 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 font-medium text-text bg-surface border border-border hover:bg-hover-bg rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 font-medium text-white bg-brand hover:opacity-90 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function SupervisorEditReportModal({ report, onClose, onUpdated }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { editReportRpc } = useReports();
+
+  const [content, setContent] = useState('');
+
+  useEffect(() => {
+    if (report) {
+      setContent(report.content || '');
+    }
+  }, [report]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    
+    const { error: updateError } = await editReportRpc(report.id, content);
+    
+    setLoading(false);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+
+    onUpdated();
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={!!report} onClose={onClose} title="Supervisor Edit: Weekly Report">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="bg-danger/10 text-danger p-3 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
+        
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">Report Content</label>
+          <textarea
+            required
+            rows="8"
+            className="w-full px-3 py-2 border border-border rounded-xl bg-white dark:bg-[#111C40] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus-visible:ring-2 ring-brand ring-offset-2 focus:outline-none"
+            value={content}
+            onChange={e => setContent(e.target.value)}
+          />
         </div>
 
         <div className="pt-4 flex justify-end gap-3">

@@ -29,11 +29,15 @@ export default function Tasks() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  
   const handleDelete = async (taskId) => {
     if (window.confirm("Are you sure you want to delete this task?")) {
-      await deleteTask(taskId);
-      loadTasks();
+      const previousTasks = [...tasks];
+      setTasks(tasks.filter(t => t.id !== taskId));
+      const { error } = await deleteTask(taskId);
+      if (error) {
+        alert("Failed to delete task: " + error.message);
+        setTasks(previousTasks);
+      }
     }
   };
 
@@ -43,9 +47,26 @@ export default function Tasks() {
 
   const handleStatusChange = async (taskId, newStatus) => {
     // Optimistic update
+    const previousTasks = [...tasks];
     setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
-    await updateTaskStatus(taskId, newStatus);
-    loadTasks(); // refresh to ensure consistency
+    
+    const { error } = await updateTaskStatus(taskId, newStatus);
+    if (error) {
+      alert("Failed to update task status: " + error.message);
+      setTasks(previousTasks);
+    }
+  };
+
+  const handleTaskCreated = (newTask) => {
+    const taskWithAssigner = {
+      ...newTask,
+      assigner: profile ? { full_name: profile.full_name, email: profile.email } : null
+    };
+    setTasks([taskWithAssigner, ...tasks]);
+  };
+
+  const handleTaskUpdated = (updatedTask) => {
+    setTasks(tasks.map(t => t.id === updatedTask.id ? { ...t, ...updatedTask } : t));
   };
 
   const groupedTasks = {
@@ -113,7 +134,7 @@ export default function Tasks() {
         <EditTaskModal 
           task={editingTask} 
           onClose={() => setEditingTask(null)} 
-          onUpdated={loadTasks}
+          onUpdated={handleTaskUpdated}
           fetchAssignableInterns={fetchAssignableInterns}
         />
       )}
@@ -121,7 +142,7 @@ export default function Tasks() {
         <CreateTaskModal 
           isOpen={isModalOpen} 
           onClose={() => setIsModalOpen(false)} 
-          onCreated={loadTasks}
+          onCreated={handleTaskCreated}
           fetchAssignableInterns={fetchAssignableInterns}
         />
       )}
@@ -231,7 +252,7 @@ function CreateTaskModal({ isOpen, onClose, onCreated, fetchAssignableInterns })
     setLoading(true);
     setError(null);
     
-    const { error: createError } = await createTask({
+    const { error: createError, data } = await createTask({
       title,
       description,
       assigned_to: assignedTo || null,
@@ -246,7 +267,13 @@ function CreateTaskModal({ isOpen, onClose, onCreated, fetchAssignableInterns })
       return;
     }
 
-    onCreated();
+    const assignee = interns.find(i => i.id === (assignedTo || null));
+    const newTask = {
+      ...data,
+      assignee: assignee ? { full_name: assignee.full_name, email: assignee.email } : null,
+    };
+
+    onCreated(newTask);
     onClose();
     
     // Reset
@@ -378,7 +405,7 @@ function EditTaskModal({ task, onClose, onUpdated, fetchAssignableInterns }) {
     setLoading(true);
     setError(null);
     
-    const { error: updateError } = await updateTaskDetails(task.id, {
+    const { error: updateError, data } = await updateTaskDetails(task.id, {
       title,
       description,
       assigned_to: assignedTo || null,
@@ -393,7 +420,13 @@ function EditTaskModal({ task, onClose, onUpdated, fetchAssignableInterns }) {
       return;
     }
 
-    onUpdated();
+    const newAssignee = interns.find(i => i.id === (assignedTo || null));
+    const updatedTask = {
+      ...data,
+      assignee: newAssignee ? { full_name: newAssignee.full_name, email: newAssignee.email } : null,
+    };
+
+    onUpdated(updatedTask);
     onClose();
   };
 
