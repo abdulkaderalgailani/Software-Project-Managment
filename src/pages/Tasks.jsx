@@ -4,6 +4,23 @@ import { useTasks } from '../hooks/useTasks';
 import { Modal } from '../components/ui/Modal';
 import { Plus, Clock, AlertCircle, Edit2, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  useDroppable,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 export default function Tasks() {
   const { user, profile } = useAuth();
@@ -13,6 +30,18 @@ export default function Tasks() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [activeTask, setActiveTask] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
   
   const canAssign = profile && ['supervisor', 'super_supervisor', 'admin'].includes(profile.role);
   const isGuest = profile?.role === 'guest';
@@ -75,6 +104,39 @@ export default function Tasks() {
     done: tasks.filter(t => t.status === 'done'),
   };
 
+  const handleDragStart = (event) => {
+    const { active } = event;
+    const task = tasks.find(t => t.id === active.id);
+    setActiveTask(task);
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    setActiveTask(null);
+    
+    if (!over) return;
+
+    const activeTaskId = active.id;
+    const overId = over.id;
+    
+    const activeTaskData = active.data.current?.task;
+    const overData = over.data.current;
+
+    if (!activeTaskData) return;
+    
+    let newStatus = activeTaskData.status;
+
+    if (overData?.type === 'Column') {
+      newStatus = overId;
+    } else if (overData?.type === 'Task') {
+      newStatus = overData.task.status;
+    }
+
+    if (activeTaskData.status !== newStatus) {
+      handleStatusChange(activeTaskId, newStatus);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -92,42 +154,63 @@ export default function Tasks() {
       {loading ? (
         <div className="text-muted">Loading tasks...</div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <TaskColumn 
-            title="To Do" 
-            tasks={groupedTasks.todo} 
-            nextStatus="in_progress" 
-            onStatusChange={handleStatusChange} 
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            canAssign={canAssign}
-            userId={user?.id}
-            isGuest={isGuest}
-          />
-          <TaskColumn 
-            title="In Progress" 
-            tasks={groupedTasks.in_progress} 
-            prevStatus="todo"
-            nextStatus="done" 
-            onStatusChange={handleStatusChange} 
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            canAssign={canAssign}
-            userId={user?.id}
-            isGuest={isGuest}
-          />
-          <TaskColumn 
-            title="Done" 
-            tasks={groupedTasks.done} 
-            prevStatus="in_progress"
-            onStatusChange={handleStatusChange} 
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            canAssign={canAssign}
-            userId={user?.id}
-            isGuest={isGuest}
-          />
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <TaskColumn 
+              title="To Do"
+              status="todo"
+              tasks={groupedTasks.todo} 
+              nextStatus="in_progress" 
+              onStatusChange={handleStatusChange} 
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              canAssign={canAssign}
+              userId={user?.id}
+              isGuest={isGuest}
+            />
+            <TaskColumn 
+              title="In Progress" 
+              status="in_progress"
+              tasks={groupedTasks.in_progress} 
+              prevStatus="todo"
+              nextStatus="done" 
+              onStatusChange={handleStatusChange} 
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              canAssign={canAssign}
+              userId={user?.id}
+              isGuest={isGuest}
+            />
+            <TaskColumn 
+              title="Done" 
+              status="done"
+              tasks={groupedTasks.done} 
+              prevStatus="in_progress"
+              onStatusChange={handleStatusChange} 
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              canAssign={canAssign}
+              userId={user?.id}
+              isGuest={isGuest}
+            />
+          </div>
+          <DragOverlay>
+            {activeTask ? (
+              <SortableTaskItem 
+                task={activeTask}
+                canAssign={canAssign}
+                userId={user?.id}
+                isGuest={isGuest}
+                isDragOverlay
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {editingTask && (
@@ -150,7 +233,14 @@ export default function Tasks() {
   );
 }
 
-function TaskColumn({ title, tasks, prevStatus, nextStatus, onStatusChange, onEdit, onDelete, canAssign, userId, isGuest }) {
+function TaskColumn({ title, status, tasks, prevStatus, nextStatus, onStatusChange, onEdit, onDelete, canAssign, userId, isGuest }) {
+  const { setNodeRef } = useDroppable({
+    id: status,
+    data: {
+      type: 'Column',
+    },
+  });
+
   return (
     <div className="bg-surface-nested rounded-xl p-4 flex flex-col gap-4 border border-border min-h-[500px]">
       <div className="flex items-center justify-between px-1">
@@ -160,67 +250,128 @@ function TaskColumn({ title, tasks, prevStatus, nextStatus, onStatusChange, onEd
         </span>
       </div>
       
-      <div className="flex-1 space-y-3">
-        {tasks.map(task => (
-          <div key={task.id} className="bg-surface p-4 rounded-xl shadow-sm border border-border flex flex-col gap-3 group">
-            <div>
-              <div className="flex justify-between items-start gap-2 mb-1">
-                <h4 className="font-bold text-text line-clamp-2">{task.title}</h4>
-                {task.priority === 'high' && <AlertCircle className="w-4 h-4 text-danger flex-shrink-0" />}
+      <div ref={setNodeRef} className="flex-1 space-y-3">
+        <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          {tasks.map(task => (
+            <SortableTaskItem
+              key={task.id}
+              task={task}
+              prevStatus={prevStatus}
+              nextStatus={nextStatus}
+              onStatusChange={onStatusChange}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              canAssign={canAssign}
+              userId={userId}
+              isGuest={isGuest}
+            />
+          ))}
+        </SortableContext>
+      </div>
+    </div>
+  );
+}
 
-                {!isGuest && canAssign && (
-                  <div className="flex gap-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => onEdit(task)} className="text-muted hover:text-brand transition-colors p-1" title="Edit Task">
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => onDelete(task.id)} className="text-muted hover:text-danger transition-colors p-1" title="Delete Task">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+function SortableTaskItem({ task, prevStatus, nextStatus, onStatusChange, onEdit, onDelete, canAssign, userId, isGuest, isDragOverlay }) {
+  const isDraggable = !isGuest && (canAssign || task.assigned_to === userId);
 
-              </div>
-              <p className="text-sm text-muted line-clamp-3">{task.description}</p>
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ 
+    id: task.id,
+    data: {
+      type: 'Task',
+      task,
+    },
+    disabled: !isDraggable,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...listeners}
+      className={`bg-surface p-4 rounded-xl shadow-sm border border-border flex flex-col gap-3 group ${isDragOverlay ? 'shadow-lg rotate-2 scale-105 cursor-grabbing' : (isDraggable ? 'cursor-grab active:cursor-grabbing' : '')}`}
+    >
+      <div>
+        <div className="flex justify-between items-start gap-2 mb-1">
+          <h4 className="font-bold text-text line-clamp-2">{task.title}</h4>
+          {task.priority === 'high' && <AlertCircle className="w-4 h-4 text-danger flex-shrink-0" />}
+
+          {!isGuest && canAssign && !isDragOverlay && (
+            <div className="flex gap-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button 
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onEdit(task); }} 
+                className="text-muted hover:text-brand transition-colors p-1" 
+                title="Edit Task"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button 
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onDelete(task.id); }} 
+                className="text-muted hover:text-danger transition-colors p-1" 
+                title="Delete Task"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
-            
-            <div className="flex flex-col gap-2 mt-auto pt-2 border-t border-border">
-              <div className="flex flex-col gap-1 text-xs text-muted">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium truncate pr-2">To: {task.assignee?.full_name || 'Unassigned'}</span>
-                  {task.due_date && (
-                    <span className="flex items-center gap-1 flex-shrink-0">
-                      <Clock className="w-3 h-3" /> {format(parseISO(task.due_date), 'MMM d')}
-                    </span>
-                  )}
-                </div>
-                {task.assigner && (
-                  <span className="truncate">From: {task.assigner.full_name}</span>
-                )}
-              </div>
-              
-              {!isGuest && (canAssign || task.assigned_to === userId) && (prevStatus || nextStatus) && (
-                <div className="flex gap-2 mt-2">
-                  {prevStatus && (
-                    <button
-                      onClick={() => onStatusChange(task.id, prevStatus)}
-                      className="flex-1 text-center text-sm font-medium text-text bg-surface-nested border border-border hover:bg-hover-bg py-1.5 rounded-lg transition-colors"
-                    >
-                      &larr; {prevStatus.replace('_', ' ')}
-                    </button>
-                  )}
-                  {nextStatus && (
-                    <button
-                      onClick={() => onStatusChange(task.id, nextStatus)}
-                      className="flex-1 text-center text-sm font-medium text-brand bg-brand-tint hover:opacity-90 py-1.5 rounded-lg transition-colors"
-                    >
-                      {nextStatus.replace('_', ' ')} &rarr;
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+          )}
+
+        </div>
+        <p className="text-sm text-muted line-clamp-3">{task.description}</p>
+      </div>
+      
+      <div className="flex flex-col gap-2 mt-auto pt-2 border-t border-border">
+        <div className="flex flex-col gap-1 text-xs text-muted">
+          <div className="flex justify-between items-center">
+            <span className="font-medium truncate pr-2">To: {task.assignee?.full_name || 'Unassigned'}</span>
+            {task.due_date && (
+              <span className="flex items-center gap-1 flex-shrink-0">
+                <Clock className="w-3 h-3" /> {format(parseISO(task.due_date), 'MMM d')}
+              </span>
+            )}
           </div>
-        ))}
+          {task.assigner && (
+            <span className="truncate">From: {task.assigner.full_name}</span>
+          )}
+        </div>
+        
+        {!isGuest && (canAssign || task.assigned_to === userId) && (prevStatus || nextStatus) && !isDragOverlay && (
+          <div className="flex gap-2 mt-2">
+            {prevStatus && (
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onStatusChange(task.id, prevStatus); }}
+                className="flex-1 text-center text-sm font-medium text-text bg-surface-nested border border-border hover:bg-hover-bg py-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                &larr; {prevStatus.replace('_', ' ')}
+              </button>
+            )}
+            {nextStatus && (
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onStatusChange(task.id, nextStatus); }}
+                className="flex-1 text-center text-sm font-medium text-brand bg-brand-tint hover:opacity-90 py-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                {nextStatus.replace('_', ' ')} &rarr;
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
