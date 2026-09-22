@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTasks } from '../hooks/useTasks';
 import { Modal } from '../components/ui/Modal';
-import { Plus, Clock, AlertCircle, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Clock, Edit2, Trash2, AlertCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { getUrgencyColorClass } from '../lib/dateUtils';
 import {
   DndContext,
   closestCenter,
@@ -233,6 +234,21 @@ export default function Tasks() {
   );
 }
 
+const PriorityPill = ({ priority }) => {
+  if (!priority) return null;
+  const config = {
+    low: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: 'Low' },
+    medium: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', label: 'Medium' },
+    high: { bg: 'bg-danger-tint', text: 'text-danger', label: 'High' }
+  };
+  const style = config[priority.toLowerCase()] || config.medium;
+  return (
+    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full tracking-wider whitespace-nowrap ${style.bg} ${style.text}`}>
+      {style.label}
+    </span>
+  );
+};
+
 function TaskColumn({ title, status, tasks, prevStatus, nextStatus, onStatusChange, onEdit, onDelete, canAssign, userId, isGuest }) {
   const { setNodeRef } = useDroppable({
     id: status,
@@ -306,9 +322,11 @@ function SortableTaskItem({ task, prevStatus, nextStatus, onStatusChange, onEdit
       className={`bg-surface p-4 rounded-xl shadow-sm border border-border flex flex-col gap-3 group ${isDragOverlay ? 'shadow-lg rotate-2 scale-105 cursor-grabbing' : (isDraggable ? 'cursor-grab active:cursor-grabbing' : '')}`}
     >
       <div>
-        <div className="flex justify-between items-start gap-2 mb-1">
-          <h4 className="font-bold text-text line-clamp-2">{task.title}</h4>
-          {task.priority === 'high' && <AlertCircle className="w-4 h-4 text-danger flex-shrink-0" />}
+        <div className="flex justify-between items-start gap-2 mb-2">
+          <div className="flex flex-col gap-1.5 items-start">
+            <h4 className="font-bold text-text line-clamp-2 leading-tight">{task.title}</h4>
+            <PriorityPill priority={task.priority} />
+          </div>
 
           {!isGuest && canAssign && !isDragOverlay && (
             <div className="flex gap-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -339,11 +357,17 @@ function SortableTaskItem({ task, prevStatus, nextStatus, onStatusChange, onEdit
         <div className="flex flex-col gap-1 text-xs text-muted">
           <div className="flex justify-between items-center">
             <span className="font-medium truncate pr-2">To: {task.assignee?.full_name || 'Unassigned'}</span>
-            {task.due_date && (
-              <span className="flex items-center gap-1 flex-shrink-0">
-                <Clock className="w-3 h-3" /> {format(parseISO(task.due_date), 'MMM d')}
-              </span>
-            )}
+            {task.due_date && (() => {
+              const urgencyClass = getUrgencyColorClass(task.due_date, task.status === 'done');
+              const isOverdue = urgencyClass.includes('text-danger');
+              return (
+                <span className={`flex items-center gap-1 flex-shrink-0 ${urgencyClass}`}>
+                  <Clock className="w-3 h-3" /> 
+                  {format(parseISO(task.due_date), 'MMM d')}
+                  {isOverdue && <AlertCircle className="w-3 h-3 ml-0.5" />}
+                </span>
+              );
+            })()}
           </div>
           {task.assigner && (
             <span className="truncate">From: {task.assigner.full_name}</span>

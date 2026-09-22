@@ -1,6 +1,7 @@
 import React from 'react';
 import { format, parseISO, differenceInCalendarDays, isBefore, isAfter } from 'date-fns';
 import { Calendar } from 'lucide-react';
+import { getUrgencyColorClass } from '../../lib/dateUtils';
 
 export function InternProgress({ startDate, endDate, compact = false }) {
   if (!startDate || !endDate) {
@@ -34,13 +35,16 @@ export function InternProgress({ startDate, endDate, compact = false }) {
   }
 
   const dateFmt = compact ? 'MMM d' : 'MMM d, yyyy';
+  const isCompleted = isAfter(today, end);
+  const endColorClass = getUrgencyColorClass(endDate, isCompleted);
+  const isUrgent = endColorClass !== 'text-muted';
 
   return (
     <div className={`flex flex-col gap-2 ${compact ? 'text-xs' : 'text-sm'}`}>
       <div className="flex justify-between items-center text-muted">
-        <div className="flex items-center gap-2">
-          <Calendar className={compact ? "w-3 h-3" : "w-4 h-4 text-brand"} />
-          <span className="font-medium text-text">
+        <div className={`flex items-center gap-2 ${isUrgent ? endColorClass : ''}`}>
+          <Calendar className={compact ? "w-3 h-3" : `w-4 h-4 ${!isUrgent ? 'text-brand' : ''}`} />
+          <span className={`font-medium ${!isUrgent ? 'text-text' : ''}`}>
             {format(start, dateFmt)} &rarr; {format(end, dateFmt)}
           </span>
         </div>

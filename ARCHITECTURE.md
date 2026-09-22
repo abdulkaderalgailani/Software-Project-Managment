@@ -1,57 +1,48 @@
-# System Architecture
-
-The Reset HR Internship Tracker is built with a clear separation of concerns, ensuring maintainability, scalability, and strict alignment with the design specifications.
+# Architecture Overview
 
 ## Folder Structure
-
-The `src/` directory is logically organized by feature and function:
-
-```
-src/
-├── components/       # Reusable, stateless UI components
-│   ├── layout/       # Structural components (Sidebar, Layout wrapper)
-│   └── ui/           # Generic interface elements (Modal, ThemeToggle)
-├── context/          # Global state contexts (AuthContext, ThemeContext)
-├── features/         # Feature-specific domains
-│   ├── auth/         # Login, Signup, AuthGuard wrappers
-│   └── dashboard/    # Role-specific dashboard views (Admin, Supervisor, Intern)
-├── hooks/            # Custom React hooks containing Supabase logic (Data fetching, Realtime)
-├── lib/              # Third-party library initializations (supabase.js)
-├── pages/            # Top-level route components representing full screens
-├── index.css         # Global stylesheet containing Tailwind base layers and design tokens
-└── main.jsx          # Application entry point
+```text
+/src
+  /components
+    /layout       # Shared layout components (Sidebar, Topbar, Layout wrapper, AuthGuard)
+    /ui           # Reusable UI components (Modal, InternProgress, EntryComments, etc.)
+  /context        # React Contexts (AuthContext, ThemeContext)
+  /features       # Feature-specific components (auth forms, role-aware dashboards)
+  /hooks          # Custom React hooks containing Supabase data fetching and mutation logic
+  /lib            # Utility functions (supabase client, dateUtils, cn)
+  /pages          # Top-level page components (routed views)
 ```
 
-## State Management & Data Flow
+## Contexts
+- **AuthContext**: Manages the global authentication state. Fetches the current session, queries the `users` table to determine the user's role and status, and provides global context (e.g., `user`, `profile`, `isAdmin`, `isSupervisor`).
+- **ThemeContext**: Handles light/dark mode toggling, persisting preferences in `localStorage`, and applying the `dark` class to the HTML root.
 
-- **Authentication State**: Managed globally via `AuthContext.jsx`. It listens to Supabase auth state changes and exposes the current user, their profile, and their specific role (`intern`, `supervisor`, `super_supervisor`, `admin`).
-- **Theme State**: Managed globally via `ThemeContext.jsx`. It toggles the `.dark` class on the document root and persists the user's preference to `localStorage`.
-- **Data Fetching (Hooks)**: Data fetching logic is completely decoupled from UI components. Custom hooks in `src/hooks/` (e.g., `useProgress.js`, `useDashboard.js`, `useTasks.js`) interact directly with the Supabase client (`lib/supabase.js`). This guarantees that components remain focused on presentation and rely entirely on these hooks for asynchronous state (loading, data, error).
-- **Realtime Updates**: Specific hooks (like `useMessages.js`) utilize Supabase's Realtime capabilities via `supabase.channel()` to subscribe to database inserts for instant UI updates.
+## Data Layer & Supabase Hooks
+All database interactions are abstracted into custom hooks inside `src/hooks/` (e.g., `useTasks`, `useDiary`, `useReports`). 
+Components never execute raw Supabase queries directly. Instead, they consume hooks that return states (`data`, `loading`, `error`) and mutation functions.
 
-## Routing
+## Routing Map (`App.jsx`)
+- `/login`, `/signup` (Public authentication pages)
+- Protected routes wrapped by `<AuthGuard>` and `<Layout>`:
+  - `/dashboard` (Role-aware dashboard)
+  - `/progress`, `/progress/:id` (Daily progress tracking)
+  - `/tasks` (Kanban task board)
+  - `/reports` (Weekly reports)
+  - `/diary` (Personal diary)
+  - `/messages` (Realtime chat)
+  - `/team` (Team directory and supervisor assignments)
+  - `/logs` (App-wide activity logs)
+  - `/settings` (User settings)
 
-The application uses `react-router-dom` v6 for client-side routing. Navigation is primarily role-gated using the `<AuthGuard>` wrapper.
+## Security & Row Level Security (RLS)
+The database heavily relies on PostgreSQL Row Level Security (RLS) policies to enforce access control at the database level.
+- **Roles**: Intern, Supervisor, Super Supervisor, Admin.
+- **can_view_intern(intern_id, viewer_id)**: A database function that verifies if a viewer has permissions to access a specific intern's data (Admins see all; Supervisors see their assigned interns).
+- **Escalation Guard**: A Postgres trigger prevents standard users from elevating their own roles to admin.
+- **Security Definer RPCs**: Certain operations that require bypassing standard RLS or strict logic (e.g., `update_intern_dates`, `edit_weekly_report`, `edit_diary_entry`) are executed via stored procedures (`SECURITY DEFINER`) to strictly control how data is mutated.
 
-### Core Routes:
-- `/` - Redirects to `/dashboard`
-- `/login`, `/signup` - Unauthenticated authentication flows.
-- `/dashboard` - Resolves to the role-specific dashboard (`AdminDashboard`, `SupervisorDashboard`, or `InternDashboard`).
-- `/progress` - The Daily Progress entry list and form.
-- `/progress/:id` - Detailed view of a specific progress entry, housing the Supervisor Reviews section.
-- `/tasks` - Kanban-style task management (To Do, In Progress, Done).
-- `/reports` - Weekly reports submission and review.
-- `/diary` - Personal, private diary entries.
-- `/messages` - Realtime chat interface.
-- `/team` - Member directory (filtered by role constraints).
-- `/logs` - Global activity feed.
-- `/settings` - User settings and preferences.
-
-## Styling Convention
-
-The application uses **Tailwind CSS** strictly adhering to the Reset HR brand guidelines defined in `DESIGN.md`.
-
-- **Semantic Tokens**: `index.css` defines root CSS variables for light and dark modes (e.g., `--brand`, `--navy`, `--surface`, `--text-muted`). 
-- **Tailwind Config**: These custom variables are meticulously mapped into `tailwind.config.js` to create functional Tailwind utility classes (e.g., `bg-surface`, `text-on-navy-muted`).
-- **Dark Mode Strategy**: We utilize the `class` dark mode strategy in Tailwind. All custom color variables explicitly flip values when the `.dark` class is applied to the root element. We strictly avoid hardcoding generic colors (like `bg-white` or `text-black`), relying entirely on our semantic tokens (e.g., `bg-surface text-text`) except where explicit overrides are necessary (like the global input dark mode fix).
-- **Global Input Overrides**: To prevent invisible text bugs in inputs and textareas, a global script actively enforces explicit light/dark background and text classes (`bg-white dark:bg-[#111C40] text-slate-900 dark:text-white`) on all `<input>` and `<textarea>` elements across the `.jsx` files.
+## Styling & Token Conventions
+- **Tailwind CSS** is used for all styling.
+- **Brand Identity**: The primary brand color is Orange (`#F26722`, `var(--brand)`), used sparingly for primary buttons, active links, and focus rings.
+- **Custom Tokens**: Defined in `tailwind.config.js` and `index.css` (e.g., `brand`, `surface`, `danger`, `success`, `muted`).
+- **Dark Mode**: Configured via the `dark:` variant and native CSS variable swapping in `index.css`.

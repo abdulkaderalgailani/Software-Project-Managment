@@ -1,63 +1,61 @@
-# Reset HR Consulting - Internship Tracker
+# Reset Tracker (Internship Tracker)
 
-The Reset HR Internship Tracker is a comprehensive platform designed to streamline the internship experience. It provides a centralized hub for interns to log their daily progress, track tasks, write weekly reports, and maintain a personal diary. Concurrently, it empowers supervisors and administrators to monitor progress, assign tasks, provide feedback, and oversee the entire internship program across the organization.
+A comprehensive web application for interns, supervisors, and administrators to track daily progress, manage tasks, submit weekly reports, log diary entries, and facilitate clear communication.
+
+## Live URL
+[ai-coded-tracker.vercel.app](https://ai-coded-tracker.vercel.app/)
 
 ## Tech Stack
+- **Frontend**: React 18, Vite, Tailwind CSS, react-router-dom v6
+- **Backend & Database**: Supabase (PostgreSQL, Auth, RLS, Realtime)
+- **Icons & Utils**: lucide-react, date-fns, @dnd-kit (for drag-and-drop)
 
-- **Frontend Framework**: React 18
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS (with custom brand tokens and dark mode support)
-- **Routing**: React Router v6 (`react-router-dom`)
-- **Backend & Database**: Supabase (PostgreSQL, Authentication, Realtime Subscriptions)
-- **Icons**: Lucide React
-- **Date Utility**: date-fns
+## Key Features
+- **Role-Based Access Control**: Interns, Supervisors, Super Supervisors, and Admins.
+- **Admin Approval**: New signups require admin approval before full access.
+- **Role-Aware Dashboards**: Tailored views and summaries depending on user role.
+- **Daily Progress**: Log daily activities and blockers.
+- **Task Management (Kanban)**: Assign tasks, drag-and-drop status updates, priority pills, and due-date urgency color-coding.
+- **Weekly Reports & Diary**: Interns submit weekly summaries and personal diaries.
+- **Reviews & Comments**: Supervisors and admins can edit and comment on intern submissions.
+- **Realtime Messaging**: Chat channels for instant communication via Supabase.
+- **Activity Log**: App-wide tracking of user actions and changes.
+- **Team Directory**: View team members, roles, and supervisor assignments.
+- **Internship Tracking**: Track start and end dates with urgency indicators.
 
-## Getting Started
+## Setup Instructions
 
-Follow these instructions to set up the project locally.
+### Prerequisites
+- Node.js (v18+)
+- npm or yarn
 
-### 1. Prerequisites
+### Installation
+1. **Clone the repository:**
+   ```bash
+   git clone <repo-url>
+   cd AI-Internship-Tracker
+   ```
 
-- Node.js (v18 or higher recommended)
-- A Supabase account and project
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-### 2. Installation
+3. **Environment Variables:**
+   Create a `.env` file in the root directory and add the following keys from your Supabase project:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+   *(Note: Never commit the service-role key to the frontend).*
 
-Clone the repository and install the dependencies:
+4. **Start the Development Server:**
+   ```bash
+   npm run dev
+   ```
 
-```bash
-# Install dependencies
-npm install
-```
-
-### 3. Environment Variables
-
-Create a `.env` file in the root directory and add your Supabase project credentials. You can use `.env.example` as a reference if available.
-
-```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-*Note: Never expose the Supabase service-role key in the frontend code. Authorization is handled securely via Row Level Security (RLS) in the Supabase database.*
-
-### 4. Database Setup
-
-Before running the application, ensure that you have executed the required SQL schemas and RLS policies in your Supabase SQL Editor. The schema definitions can be found in `internship-tracker-spec.md` (Sections 6 and 7).
-
-### 5. Running the Development Server
-
-Start the Vite development server:
-
-```bash
-npm run dev
-```
-
-The application will typically be available at `http://localhost:5173`.
-
-## Scripts
-
-- `npm run dev`: Starts the local development server with hot-module replacement (HMR).
-- `npm run build`: Compiles the application for production and outputs the optimized bundle to the `dist` directory.
-- `npm run preview`: Serves the production build locally for testing before deployment.
-- `npm run lint`: Runs ESLint to catch syntax and styling issues.
+## Deployment
+This project is configured for seamless deployment on Vercel:
+1. Connect your repository to Vercel.
+2. Set the `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` environment variables in the Vercel dashboard.
+3. Deploy! (Vercel automatically detects the Vite build commands).

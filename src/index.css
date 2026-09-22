@@ -20,6 +20,9 @@
     --success-bg: #E1F5EE;
     --success-text: #0F6E56;
 
+    --danger: #EF4444;
+    --danger-tint: #FEE2E2;
+
     --surface-nested: transparent;
     --input-bg: #FFFFFF;
     --hover-bg: #F7F8FA;
@@ -41,6 +44,9 @@
     
     --success-bg: #123A2F;
     --success-text: #4ADE80;
+
+    --danger: #F87171;
+    --danger-tint: #450A0A;
 
     --surface-nested: #102A47;
     --input-bg: #0E2947;

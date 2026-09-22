@@ -14,6 +14,11 @@ Stack: React + Vite + Supabase, deployed on Vercel.
   - Created `admin@demo.com`, role=admin, status=approved for supervisor evaluation.
 - **Full Test Org Setup**: 
   - 1 admin, 2 admins total, 2 supervisors (A/B), 2 interns each linked to a different supervisor — two isolated teams for testing role isolation.
+- **Task Board & Dashboard UI Polish**:
+  - Implemented smooth Drag-and-Drop for task columns using `@dnd-kit` with optimistic updates.
+  - Added urgency color-coding to due dates and internship end dates (Red = overdue, Orange = due within 3 days).
+  - Added traffic-light Priority Pills (High/Medium/Low) to task cards.
+  - Added an overdue alert icon specifically for past-due tasks.
 
 ## Bugs Fixed
 - Diary comments failed with a check-constraint violation because the frontend sent `entry_type='diary_entry'` but the constraint only allows `diary`. Fixed the Diary page to pass `entryType="diary"` (fixes both insert and fetch since they share the prop).
