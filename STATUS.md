@@ -1,6 +1,7 @@
 # Session Recap — Reset Tracker (Internship Tracker)
 
 Stack: React + Vite + Supabase, deployed on Vercel.
+Supabase Instance: `https://rcnynusanoekvtcmukuv.supabase.co`
 
 ## Features Built
 - **Edit + comment on interns' weekly reports and diary for supervisors/admins**:

@@ -38,9 +38,7 @@ buttons, active nav, links, focus rings. Never orange page backgrounds. Full tok
   (Bump reasoning Low→Medium/High for auth/RLS-heavy phases. Claude Sonnet 4.6 is also available
   as a fallback — Gemini and Claude/GPT have **separate quota buckets**.)
 - **AI Credit Overages: OFF** (safe — no surprise charges; agent just pauses if quota runs out).
-- **Supabase project:** name `AI-Internship-Tracker`, org `Creative Labs` (free tier),
-  URL `https://cgeimuppliizvhpofybl.supabase.co`, region `ap-northeast-1` (Tokyo).
-  > Region is far from the user (Istanbul) — mild latency cost, kept as-is on purpose.
+- **Supabase project:** URL `https://rcnynusanoekvtcmukuv.supabase.co`.
 - **`.env`** in repo root holds the real `VITE_SUPABASE_URL` (the `.supabase.co` address) and
   `VITE_SUPABASE_ANON_KEY` (the **anon/public** key — never service_role). Restart `npm run dev`
   after any `.env` edit; Vite only reads it at startup.
@@ -48,9 +46,9 @@ buttons, active nav, links, focus rings. Never orange page backgrounds. Full tok
 
 ## Database (already done)
 
-All 8 tables created and RLS applied via the spec's §6 (schema) and §7 (policies), which are also
+All 9 tables created and RLS applied via the spec's §6 (schema) and §7 (policies), which are also
 inlined in `GETTING_STARTED.md` steps 2–3. Confirmed in Supabase Table Editor: `profiles`,
-`daily_progress`, `reviews`, `tasks`, `weekly_reports`, `diary_entries`, `messages`, `activity_logs`,
+`daily_progress`, `reviews`, `tasks`, `weekly_reports`, `diary_entries`, `entry_comments`, `messages`, `activity_logs`,
 with RLS policies present. The `handle_new_user` trigger auto-creates a `profiles` row on signup.
 
 ## Files in the repo

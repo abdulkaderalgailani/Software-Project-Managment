@@ -217,31 +217,58 @@ src/
 ## 6. Database schema (run in Supabase SQL editor)
 
 ```sql
--- ========= Enums =========
+-- ========= Enums & Extensions =========
+create extension if not exists "pgcrypto";
 create type user_role as enum ('intern', 'supervisor', 'super_supervisor', 'admin');
 
 -- ========= Profiles (extends auth.users) =========
 create table profiles (
-  id            uuid primary key references auth.users(id) on delete cascade,
-  full_name     text not null,
-  email         text,
-  role          user_role not null default 'intern',
-  supervisor_id uuid references profiles(id),   -- who supervises this intern
-  created_at    timestamptz not null default now()
+  id                    uuid primary key references auth.users(id) on delete cascade,
+  full_name             text not null,
+  email                 text,
+  role                  user_role not null default 'intern',
+  status                text not null default 'active', -- 'active' | 'pending'
+  supervisor_id         uuid references profiles(id),   -- who supervises this intern
+  internship_start_date date,
+  internship_end_date   date,
+  created_at            timestamptz not null default now()
 );
 
 -- Auto-create a profile row when a user signs up
 create or replace function handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, full_name, email)
-  values (new.id, coalesce(new.raw_user_meta_data->>'full_name', new.email), new.email);
+  insert into public.profiles (id, full_name, email, role, status)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'full_name', new.email),
+    new.email,
+    'intern',
+    'active'
+  );
   return new;
 end; $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
+
+-- Guard to prevent non-admins from changing roles
+create or replace function prevent_role_escalation()
+returns trigger language plpgsql security definer as $$
+begin
+  if new.role <> old.role and (select role from public.profiles where id = auth.uid()) <> 'admin' then
+    raise exception 'Only administrators can change user roles.';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists guard_user_role_change on public.profiles;
+create trigger guard_user_role_change
+  before update on public.profiles
+  for each row execute function prevent_role_escalation();
 
 -- ========= Daily progress =========
 create table daily_progress (
@@ -301,6 +328,16 @@ create table diary_entries (
   created_at timestamptz not null default now()
 );
 
+-- ========= Entry Comments (Reports & Diary) =========
+create table entry_comments (
+  id          uuid primary key default gen_random_uuid(),
+  entry_type  text not null check (entry_type in ('weekly_report', 'diary')),
+  entry_id    uuid not null,
+  author_id   uuid not null references profiles(id) on delete cascade,
+  comment     text not null,
+  created_at  timestamptz not null default now()
+);
+
 -- ========= Messages =========
 create table messages (
   id           uuid primary key default gen_random_uuid(),
@@ -326,6 +363,7 @@ create index on daily_progress (intern_id, entry_date desc);
 create index on tasks (assigned_to, status);
 create index on messages (recipient_id, read_at);
 create index on activity_logs (created_at desc);
+create index on entry_comments (entry_type, entry_id);
 ```
 
 ---
@@ -358,6 +396,7 @@ alter table reviews         enable row level security;
 alter table tasks           enable row level security;
 alter table weekly_reports  enable row level security;
 alter table diary_entries   enable row level security;
+alter table entry_comments  enable row level security;
 alter table messages        enable row level security;
 alter table activity_logs   enable row level security;
 
@@ -411,8 +450,13 @@ create policy "update tasks" on tasks
     or assigned_by = auth.uid()   -- assigner can edit
     or auth_role() in ('super_supervisor','admin')
   );
+create policy "delete tasks" on tasks
+  for delete to authenticated using (
+    assigned_by = auth.uid()
+    or auth_role() in ('super_supervisor','admin')
+  );
 
--- ===== weekly_reports & diary_entries (same shape) =====
+-- ===== weekly_reports & diary_entries =====
 create policy "view weekly" on weekly_reports
   for select to authenticated using (can_view_intern(intern_id));
 create policy "intern writes weekly" on weekly_reports
@@ -422,6 +466,21 @@ create policy "view diary" on diary_entries
   for select to authenticated using (can_view_intern(intern_id));
 create policy "intern writes diary" on diary_entries
   for all to authenticated using (intern_id = auth.uid()) with check (intern_id = auth.uid());
+
+-- ===== entry_comments =====
+create policy "view entry comments" on entry_comments
+  for select to authenticated using (
+    exists (
+      select 1 from weekly_reports wr where wr.id = entry_id and can_view_intern(wr.intern_id)
+    ) or exists (
+      select 1 from diary_entries de where de.id = entry_id and can_view_intern(de.intern_id)
+    )
+  );
+create policy "add entry comments" on entry_comments
+  for insert to authenticated with check (
+    author_id = auth.uid()
+    and auth_role() in ('supervisor', 'super_supervisor', 'admin')
+  );
 
 -- ===== messages =====
 create policy "view own messages" on messages
@@ -440,6 +499,83 @@ create policy "view logs" on activity_logs
   );
 create policy "write own logs" on activity_logs
   for insert to authenticated with check (actor_id = auth.uid());
+
+-- ===== RPC Functions (Stored Procedures) =====
+create or replace function set_internship_dates(
+  target_intern uuid,
+  start_date date,
+  end_date date
+)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not (
+    auth_role() in ('super_supervisor', 'admin')
+    or exists (select 1 from profiles where id = target_intern and supervisor_id = auth.uid())
+  ) then
+    raise exception 'Unauthorized to set internship dates for this intern';
+  end if;
+
+  update profiles
+  set internship_start_date = start_date,
+      internship_end_date = end_date
+  where id = target_intern;
+end;
+$$;
+
+create or replace function edit_weekly_report(
+  report_id uuid,
+  new_content text
+)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_intern_id uuid;
+begin
+  select intern_id into v_intern_id from weekly_reports where id = report_id;
+  if v_intern_id is null then
+    raise exception 'Weekly report not found';
+  end if;
+
+  if not (
+    auth_role() in ('super_supervisor', 'admin')
+    or exists (select 1 from profiles where id = v_intern_id and supervisor_id = auth.uid())
+  ) then
+    raise exception 'Unauthorized to edit this report';
+  end if;
+
+  update weekly_reports
+  set content = new_content
+  where id = report_id;
+end;
+$$;
+
+create or replace function edit_diary_entry(
+  entry_id uuid,
+  new_content text
+)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_intern_id uuid;
+begin
+  select intern_id into v_intern_id from diary_entries where id = entry_id;
+  if v_intern_id is null then
+    raise exception 'Diary entry not found';
+  end if;
+
+  if not (
+    auth_role() in ('super_supervisor', 'admin')
+    or exists (select 1 from profiles where id = v_intern_id and supervisor_id = auth.uid())
+  ) then
+    raise exception 'Unauthorized to edit this diary entry';
+  end if;
+
+  update diary_entries
+  set content = new_content
+  where id = entry_id;
+end;
+$$;
+
+-- Enable Realtime publication
+alter publication supabase_realtime add table messages;
 ```
 
 > **Note on `weekly_reports`/`diary_entries`:** the `for all` intern-write policy plus the
