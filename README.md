@@ -93,7 +93,7 @@ Configured for deployment on Vercel:
 4. Write clear, descriptive commit messages.
 
 ## Team
-Team project for **SEN4100 — Software Project Management**, [University / term].
+Team project for **SEN4100 — Software Project Management**.
 - [Member 1 :Abdulkader ALGAILANI]
 - [Member 2 :Cheıck Ould NEMA]
 - [Member 3 :Mohammed Amıne SAKRI]
