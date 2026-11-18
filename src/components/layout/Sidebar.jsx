@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -55,19 +56,25 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="p-5 border-t border-white/10 flex flex-col gap-3">
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-              isActive
-                ? 'bg-brand text-white'
-                : 'bg-white/5 border border-white/5 text-[#8595BD] hover:text-white hover:bg-white/10'
-            }`
-          }
-        >
-          <SettingsIcon className="w-5 h-5" />
-          <span className="font-medium">Settings</span>
-        </NavLink>
+        <div className="flex items-center gap-2">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex-1 flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                isActive
+                  ? 'bg-brand text-white'
+                  : 'bg-white/5 border border-white/5 text-[#8595BD] hover:text-white hover:bg-white/10'
+              }`
+            }
+          >
+            <SettingsIcon className="w-5 h-5" />
+            <span className="font-medium">Settings</span>
+          </NavLink>
+
+          <div className="flex-shrink-0">
+            <ThemeToggle />
+          </div>
+        </div>
 
         <button
           onClick={handleSignOut}
